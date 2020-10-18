@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:fancy_switcher/src/page_transition_switcher.dart';
-import 'package:fancy_switcher/src/shared_axis_transition.dart';
-import 'package:fancy_switcher/src/fade_trough_transition.dart';
+import 'package:animations/animations.dart';
 
 enum _FancySwitcherType { fade, axisVertical, axisHorizontal, scaled }
 
@@ -64,7 +62,6 @@ class _FancySwitcherState extends State<FancySwitcher> {
           child: child,
           animation: primaryAnimation,
           secondaryAnimation: secondaryAnimation,
-          onEnd: widget.onEnd,
         );
       case _FancySwitcherType.axisVertical:
         return SharedAxisTransition(
@@ -72,7 +69,7 @@ class _FancySwitcherState extends State<FancySwitcher> {
           secondaryAnimation: secondaryAnimation,
           transitionType: SharedAxisTransitionType.vertical,
           child: child,
-          onEnd: widget.onEnd,
+          // onEnd: widget.onEnd,
         );
       case _FancySwitcherType.axisHorizontal:
         return SharedAxisTransition(
@@ -80,7 +77,7 @@ class _FancySwitcherState extends State<FancySwitcher> {
           secondaryAnimation: secondaryAnimation,
           transitionType: SharedAxisTransitionType.horizontal,
           child: child,
-          onEnd: widget.onEnd,
+          // onEnd: widget.onEnd,
         );
       case _FancySwitcherType.scaled:
         return SharedAxisTransition(
@@ -88,7 +85,7 @@ class _FancySwitcherState extends State<FancySwitcher> {
           secondaryAnimation: secondaryAnimation,
           transitionType: SharedAxisTransitionType.scaled,
           child: child,
-          onEnd: widget.onEnd,
+          // onEnd: widget.onEnd,
         );
       default:
         throw UnimplementedError();
@@ -99,7 +96,7 @@ class _FancySwitcherState extends State<FancySwitcher> {
   Widget build(BuildContext context) => RepaintBoundary(
         child: PageTransitionSwitcher(
           transitionBuilder: _transition,
-          alignment: widget.alignment,
+          // alignment: widget.alignment,
           child: widget.child,
         ),
       );
