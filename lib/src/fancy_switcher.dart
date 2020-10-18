@@ -48,8 +48,6 @@ class FancySwitcher extends StatefulWidget {
   _FancySwitcherState createState() => _FancySwitcherState();
 }
 
-/// NOTE: Using forked transitions, because the upstream `animations` package
-/// relayouts children and don't maintain state
 class _FancySwitcherState extends State<FancySwitcher> {
   Widget _transition(
     Widget child,
@@ -62,6 +60,8 @@ class _FancySwitcherState extends State<FancySwitcher> {
           child: child,
           animation: primaryAnimation,
           secondaryAnimation: secondaryAnimation,
+          onEnd: widget.onEnd,
+          fillColor: Colors.transparent,
         );
       case _FancySwitcherType.axisVertical:
         return SharedAxisTransition(
@@ -69,7 +69,8 @@ class _FancySwitcherState extends State<FancySwitcher> {
           secondaryAnimation: secondaryAnimation,
           transitionType: SharedAxisTransitionType.vertical,
           child: child,
-          // onEnd: widget.onEnd,
+          onEnd: widget.onEnd,
+          fillColor: Colors.transparent,
         );
       case _FancySwitcherType.axisHorizontal:
         return SharedAxisTransition(
@@ -77,7 +78,8 @@ class _FancySwitcherState extends State<FancySwitcher> {
           secondaryAnimation: secondaryAnimation,
           transitionType: SharedAxisTransitionType.horizontal,
           child: child,
-          // onEnd: widget.onEnd,
+          onEnd: widget.onEnd,
+          fillColor: Colors.transparent,
         );
       case _FancySwitcherType.scaled:
         return SharedAxisTransition(
@@ -85,7 +87,8 @@ class _FancySwitcherState extends State<FancySwitcher> {
           secondaryAnimation: secondaryAnimation,
           transitionType: SharedAxisTransitionType.scaled,
           child: child,
-          // onEnd: widget.onEnd,
+          onEnd: widget.onEnd,
+          fillColor: Colors.transparent,
         );
       default:
         throw UnimplementedError();

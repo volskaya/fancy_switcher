@@ -12,7 +12,8 @@ dependencies:
   flutter:
     sdk: flutter
   transparent_image: ^1.0.0
-  animations: ^1.1.2
+  animations:
+    path: /home/projects/packages/flutter_helpers/animations
 
 dev_dependencies:
   flutter_test:
