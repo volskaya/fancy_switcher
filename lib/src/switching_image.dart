@@ -48,7 +48,6 @@ class SwitchingImage extends StatelessWidget {
   final ShapeBorder shape;
 
   /// Duration of the switch transition.
-  /// Only works on on [SwitchingImageType.fade].
   final Duration duration;
 
   /// Filter quality of the image.
@@ -173,7 +172,7 @@ class SwitchingImage extends StatelessWidget {
 
     switch (type) {
       case SwitchingImageType.scale:
-        return FancySwitcher(child: switcherChild);
+        return FancySwitcher(child: switcherChild, duration: duration);
       case SwitchingImageType.fade:
         return AnimatedSwitcher(
           duration: duration,

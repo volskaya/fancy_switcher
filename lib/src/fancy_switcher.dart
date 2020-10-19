@@ -9,6 +9,7 @@ class FancySwitcher extends StatefulWidget {
   const FancySwitcher({
     @required this.child,
     this.alignment = Alignment.center,
+    this.duration = const Duration(milliseconds: 300),
     this.onEnd,
   }) : _type = _FancySwitcherType.fade;
 
@@ -16,6 +17,7 @@ class FancySwitcher extends StatefulWidget {
   const FancySwitcher.vertical({
     @required this.child,
     this.alignment = Alignment.center,
+    this.duration = const Duration(milliseconds: 300),
     this.onEnd,
   }) : _type = _FancySwitcherType.axisVertical;
 
@@ -23,6 +25,7 @@ class FancySwitcher extends StatefulWidget {
   const FancySwitcher.horizontal({
     @required this.child,
     this.alignment = Alignment.center,
+    this.duration = const Duration(milliseconds: 300),
     this.onEnd,
   }) : _type = _FancySwitcherType.axisHorizontal;
 
@@ -30,6 +33,7 @@ class FancySwitcher extends StatefulWidget {
   const FancySwitcher.scaled({
     @required this.child,
     this.alignment = Alignment.center,
+    this.duration = const Duration(milliseconds: 300),
     this.onEnd,
   }) : _type = _FancySwitcherType.scaled;
 
@@ -42,6 +46,10 @@ class FancySwitcher extends StatefulWidget {
   /// Callback when the transation ends.
   final VoidCallback onEnd;
 
+  /// The duration of the switch animation.
+  final Duration duration;
+
+  /// The type of the switcher.
   final _FancySwitcherType _type;
 
   @override
@@ -99,8 +107,9 @@ class _FancySwitcherState extends State<FancySwitcher> {
   Widget build(BuildContext context) => RepaintBoundary(
         child: PageTransitionSwitcher(
           transitionBuilder: _transition,
-          // alignment: widget.alignment,
+          alignment: widget.alignment,
           child: widget.child,
+          duration: widget.duration,
         ),
       );
 }
