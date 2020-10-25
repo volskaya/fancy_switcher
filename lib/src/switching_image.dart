@@ -32,6 +32,7 @@ class SwitchingImage extends StatelessWidget {
     this.fit = BoxFit.cover,
     this.type = SwitchingImageType.fade,
     this.opacity,
+    this.alignment = AlignmentDirectional.topStart,
   }) : super(key: key);
 
   /// [ImageProvider] to switch to.
@@ -62,6 +63,9 @@ class SwitchingImage extends StatelessWidget {
   /// Opacity override when you wish to animate the image without having to overlap
   /// multiple opacity shaders.
   final ValueListenable<double> opacity;
+
+  /// Alignment of the children in the switchers.
+  final AlignmentGeometry alignment;
 
   /// Transparent image used as an identifier for when there's no actual image loaded.
   static final transparentImage = MemoryImage(kTransparentImage, scale: 1);
@@ -139,11 +143,13 @@ class SwitchingImage extends StatelessWidget {
   /// Default layout builder of [SwitchingImage].
   static Widget layoutBuilder(
     Widget currentChild,
-    Iterable<Widget> previousChildren,
-  ) =>
+    Iterable<Widget> previousChildren, [
+    AlignmentGeometry alignment = AlignmentDirectional.topStart,
+  ]) =>
       Stack(
         fit: StackFit.passthrough,
         overflow: Overflow.visible,
+        alignment: alignment,
         children: <Widget>[
           ...previousChildren,
           if (currentChild != null) currentChild,
@@ -172,14 +178,14 @@ class SwitchingImage extends StatelessWidget {
 
     switch (type) {
       case SwitchingImageType.scale:
-        return FancySwitcher(child: switcherChild, duration: duration);
+        return FancySwitcher(child: switcherChild, duration: duration, alignment: alignment);
       case SwitchingImageType.fade:
         return AnimatedSwitcher(
           duration: duration,
-          switchInCurve: Curves.fastOutSlowIn,
+          switchInCurve: decelerateEasing,
           switchOutCurve: const Threshold(0),
-          layoutBuilder: SwitchingImage.layoutBuilder,
           child: switcherChild,
+          layoutBuilder: (child, children) => SwitchingImage.layoutBuilder(child, children, alignment),
           transitionBuilder: (context, animation) => SwitchingImage.fadeTransition(context, animation, opacity),
         );
       default:
