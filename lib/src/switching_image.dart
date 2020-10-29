@@ -148,7 +148,7 @@ class SwitchingImage extends StatelessWidget {
   ]) =>
       Stack(
         fit: StackFit.passthrough,
-        overflow: Overflow.visible,
+        clipBehavior: Clip.none,
         alignment: alignment,
         children: <Widget>[
           ...previousChildren,
@@ -175,6 +175,11 @@ class SwitchingImage extends StatelessWidget {
     final switcherChild = isNotTransparent && (hasFrames || hasGaplessImage)
         ? rawImage
         : KeyedSubtree(key: const ValueKey('idle'), child: _idleChild);
+
+    assert(
+      switcherChild.key != null,
+      'Missing flutter patch with keys on [RawImage] objects',
+    );
 
     switch (type) {
       case SwitchingImageType.scale:

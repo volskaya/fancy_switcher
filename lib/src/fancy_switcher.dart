@@ -82,9 +82,13 @@ class _FancySwitcherState extends State<FancySwitcher> {
     _timer = null;
   }
 
+  void _updateChild() {
+    if (mounted) setState(() => _child = widget.child);
+  }
+
   void _scheduleChildSwap() {
     assert(widget.delay > Duration.zero);
-    _timer = Timer(widget.delay * timeDilation, () => setState(() => _child = widget.child));
+    _timer = Timer(widget.delay * timeDilation, _updateChild);
   }
 
   @override
