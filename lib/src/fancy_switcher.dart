@@ -94,8 +94,8 @@ class _FancySwitcherState extends State<FancySwitcher> {
   @override
   void initState() {
     if (widget.delay > Duration.zero) {
-      _child = widget.placeholder ?? const SizedBox();
-      _scheduleChildSwap();
+      _child = widget.placeholder;
+      if (widget.child != null) _scheduleChildSwap();
     } else {
       _child = widget.child;
     }
@@ -164,7 +164,7 @@ class _FancySwitcherState extends State<FancySwitcher> {
         child: PageTransitionSwitcher(
           transitionBuilder: _transition,
           alignment: widget.alignment,
-          child: _child,
+          child: _child ?? const SizedBox(key: ValueKey(false)),
           duration: widget.duration,
         ),
       );
