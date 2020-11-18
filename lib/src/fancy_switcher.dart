@@ -16,6 +16,8 @@ class FancySwitcher extends StatefulWidget {
     this.delay = Duration.zero,
     this.onEnd,
     this.placeholder,
+    this.addRepaintBoundary = false,
+    this.wrapChildrenInRepaintBoundary = true,
   }) : _type = _FancySwitcherType.fade;
 
   /// Creates a [FancySwitcher] with the material vertical axis transition.
@@ -26,6 +28,8 @@ class FancySwitcher extends StatefulWidget {
     this.delay = Duration.zero,
     this.onEnd,
     this.placeholder,
+    this.addRepaintBoundary = false,
+    this.wrapChildrenInRepaintBoundary = true,
   }) : _type = _FancySwitcherType.axisVertical;
 
   /// Creates a [FancySwitcher] with the material horizontal axis transition.
@@ -36,6 +40,8 @@ class FancySwitcher extends StatefulWidget {
     this.delay = Duration.zero,
     this.onEnd,
     this.placeholder,
+    this.addRepaintBoundary = false,
+    this.wrapChildrenInRepaintBoundary = true,
   }) : _type = _FancySwitcherType.axisHorizontal;
 
   /// Creates a [FancySwitcher] with the material scale transition;
@@ -46,6 +52,8 @@ class FancySwitcher extends StatefulWidget {
     this.delay = Duration.zero,
     this.onEnd,
     this.placeholder,
+    this.addRepaintBoundary = false,
+    this.wrapChildrenInRepaintBoundary = true,
   }) : _type = _FancySwitcherType.scaled;
 
   /// Animated child of [FancySwitcher].
@@ -68,6 +76,12 @@ class FancySwitcher extends StatefulWidget {
 
   /// The type of the switcher.
   final _FancySwitcherType _type;
+
+  /// Wrap the transition in a [RepaintBoundary].
+  final bool addRepaintBoundary;
+
+  /// Wrap the child widgets in a [RepaintBoundary].
+  final bool wrapChildrenInRepaintBoundary;
 
   @override
   _FancySwitcherState createState() => _FancySwitcherState();
@@ -160,12 +174,58 @@ class _FancySwitcherState extends State<FancySwitcher> {
   }
 
   @override
-  Widget build(BuildContext context) => RepaintBoundary(
-        child: PageTransitionSwitcher(
-          transitionBuilder: _transition,
-          alignment: widget.alignment,
-          child: _child ?? const SizedBox(key: ValueKey(false)),
-          duration: widget.duration,
-        ),
-      );
+  Widget build(BuildContext context) {
+    final child = _child != null
+        ? widget.wrapChildrenInRepaintBoundary
+            ? RepaintBoundary(
+                key: FancySwitcherTag.maybeGetKey(_child),
+                child: _child,
+              )
+            : KeyedSubtree(
+                key: FancySwitcherTag.maybeGetKey(_child),
+                child: _child,
+              )
+        : null;
+
+    final transition = PageTransitionSwitcher(
+      transitionBuilder: _transition,
+      alignment: widget.alignment,
+      child: child ?? const SizedBox(key: ValueKey(false)),
+      duration: widget.duration,
+    );
+
+    return widget.addRepaintBoundary ? RepaintBoundary(child: transition) : transition;
+  }
+}
+
+/// Tag widget that allows [FancySwitcher] to differentiate the same animating widget types.
+///
+/// Flutter recently changed the behavior of keys - when the key doesn't change, the widget won't rebuild
+/// on prop changes as well. Note, this might be a bug. I can't reproduce this behavior on a vanilla flutter project.
+///
+/// FIXME: Remove usage of [FancySwitcherTag] when regular keys are fixed.
+class FancySwitcherTag extends StatelessWidget {
+  /// Creates [FancySwitcherTag].
+  const FancySwitcherTag({
+    Key key,
+    @required this.tag,
+    @required this.child,
+  }) : super(key: key);
+
+  /// The tag that's gonna be compared against another switcher child.
+  final Comparable tag;
+
+  /// Child [Widget] of this [FancySwitcherTag].
+  final Widget child;
+
+  /// Attempts to extract [FancySwitcherTag] tag as a [ValueKey] from the [child].
+  /// If the child is not a [FancySwitcherTag], default to it's own key or runtime key.
+  static Key maybeGetKey(Widget child) => child != null
+      ? child is FancySwitcherTag
+          ? ValueKey(child.tag)
+          : (child.key ?? ValueKey(child.runtimeType))
+      : null;
+
+  @override
+  Widget build(BuildContext context) => child;
 }
