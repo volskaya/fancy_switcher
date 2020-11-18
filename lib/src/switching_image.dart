@@ -26,8 +26,9 @@ class SwitchingImage extends StatelessWidget {
     @required this.imageProvider,
     this.idleChild,
     this.idleOnly = false,
+    this.layoutChildren = const <Widget>[],
     this.shape,
-    this.duration = const Duration(milliseconds: 300),
+    this.duration,
     this.filterQuality = FilterQuality.low,
     this.fit = BoxFit.cover,
     this.type = SwitchingImageType.fade,
@@ -35,12 +36,22 @@ class SwitchingImage extends StatelessWidget {
     this.alignment = AlignmentDirectional.topStart,
   }) : super(key: key);
 
+  /// The default duration of transitions. Feel free to reassign this.
+  static Duration transitionDuration = const Duration(milliseconds: 300);
+
+  /// The default curve of transitions. Feel free to reassign this.
+  /// This only works for [SwitchingImageType.fade] as the other types use transitions from the animations package.
+  static Curve transitionCurve = decelerateEasing;
+
   /// [ImageProvider] to switch to.
   final ImageProvider imageProvider;
 
   /// While [SwitchingImage.imageProvider] is not loaded an optional
   /// [idleChild] will be built instead.
   final Widget idleChild;
+
+  /// Children [Widget]'s on top of the [Material], in the switcher's layout builder.
+  final Iterable<Widget> layoutChildren;
 
   /// Convenience boolean to return early, with no animated switching logic.
   final bool idleOnly;
@@ -100,11 +111,17 @@ class SwitchingImage extends StatelessWidget {
     Widget widget,
     Animation<double> animation, [
     ValueListenable<double> opacity,
+    Widget Function(Widget child) wrap,
   ]) {
     // If a switched in object animates out,
     // its animation will be at 1.0 - isCompleted
     if (animation.isCompleted && opacity == null) {
-      return widget;
+      return widget is RawImage
+          ? RepaintBoundary(
+              key: widget.key,
+              child: wrap?.call(widget) ?? widget,
+            )
+          : wrap?.call(widget) ?? widget;
     }
 
     // No shader opacity optimization by setting the color opacity on the image.
@@ -112,10 +129,9 @@ class SwitchingImage extends StatelessWidget {
       return AnimatedBuilder(
         animation: opacity != null ? Listenable.merge([animation, opacity]) : animation,
         builder: (_, __) {
+          // Copy the [RawImage] with a new color.
           final value = opacity != null ? math.min(opacity.value, animation.value) : animation.value;
-
-          // Copy the [RawImage] with a new color
-          return RawImage(
+          final image = RawImage(
             key: widget.key,
             height: widget.height,
             width: widget.width,
@@ -133,10 +149,18 @@ class SwitchingImage extends StatelessWidget {
             colorBlendMode: BlendMode.modulate,
             color: Color.fromRGBO(255, 255, 255, value),
           );
+
+          return RepaintBoundary(
+            key: widget.key,
+            child: wrap?.call(image) ?? image,
+          );
         },
       );
     } else {
-      return FadeTransition(opacity: animation, child: widget);
+      return FadeTransition(
+        opacity: animation,
+        child: RepaintBoundary(key: widget.key, child: wrap?.call(widget) ?? widget),
+      );
     }
   }
 
@@ -145,6 +169,7 @@ class SwitchingImage extends StatelessWidget {
     Widget currentChild,
     Iterable<Widget> previousChildren, [
     AlignmentGeometry alignment = AlignmentDirectional.topStart,
+    Iterable<Widget> layoutChildren = const <Widget>[],
   ]) =>
       Stack(
         fit: StackFit.passthrough,
@@ -153,14 +178,20 @@ class SwitchingImage extends StatelessWidget {
         children: <Widget>[
           ...previousChildren,
           if (currentChild != null) currentChild,
+          ...layoutChildren,
         ],
       );
 
-  /// If [SwitchingImage.widgeshape] is not null, wrap the image in [ClipRRect]
-  Widget _withClipper({@required Widget child}) =>
-      shape != null ? ClipPath(clipper: ShapeBorderClipper(shape: shape), child: child) : child;
+  /// If [SwitchingImage.shape] is not null, wrap the image in [ClipPath].
+  Widget _withClipper({@required Widget child}) => shape != null
+      ? ClipPath(
+          key: child?.key ?? ValueKey(child.runtimeType),
+          clipper: ShapeBorderClipper(shape: shape),
+          child: child,
+        )
+      : child;
 
-  /// HACK: Raw image keys require a patch for flutter source
+  /// HACK: Raw image keys require a patch for flutter source.
   Widget _frameBuilder(
     BuildContext context,
     Widget child,
@@ -172,26 +203,35 @@ class SwitchingImage extends StatelessWidget {
     final hasGaplessImage = rawImage.image != null;
     final key = rawImage?.key as ObjectKey;
     final isNotTransparent = key?.value != SwitchingImage.transparentImage;
-    final switcherChild = isNotTransparent && (hasFrames || hasGaplessImage)
-        ? rawImage
-        : KeyedSubtree(key: const ValueKey('idle'), child: _idleChild);
+    final switcherChild = isNotTransparent && (hasFrames || hasGaplessImage) ? rawImage : _idleChild;
 
-    assert(
-      switcherChild.key != null,
-      'Missing flutter patch with keys on [RawImage] objects',
-    );
+    // assert(
+    //   switcherChild.key != null,
+    //   'Missing flutter patch with keys on [RawImage] objects',
+    // );
 
     switch (type) {
       case SwitchingImageType.scale:
-        return FancySwitcher(child: switcherChild, duration: duration, alignment: alignment);
+        return FancySwitcher(
+          duration: duration ?? SwitchingImage.transitionDuration,
+          alignment: alignment,
+          addRepaintBoundary: false,
+          wrapChildrenInRepaintBoundary: false,
+          child: _withClipper(child: switcherChild),
+        );
       case SwitchingImageType.fade:
         return AnimatedSwitcher(
-          duration: duration,
-          switchInCurve: decelerateEasing,
+          duration: duration ?? SwitchingImage.transitionDuration,
+          switchInCurve: SwitchingImage.transitionCurve,
           switchOutCurve: const Threshold(0),
           child: switcherChild,
-          layoutBuilder: (child, children) => SwitchingImage.layoutBuilder(child, children, alignment),
-          transitionBuilder: (context, animation) => SwitchingImage.fadeTransition(context, animation, opacity),
+          layoutBuilder: (child, children) => SwitchingImage.layoutBuilder(child, children, alignment, layoutChildren),
+          transitionBuilder: (context, animation) => SwitchingImage.fadeTransition(
+            context,
+            animation,
+            opacity,
+            (child) => _withClipper(child: child),
+          ),
         );
       default:
         throw UnimplementedError();
@@ -204,8 +244,8 @@ class SwitchingImage extends StatelessWidget {
   Widget build(BuildContext context) {
     if (idleOnly) _idleChild;
 
-    return _withClipper(
-      child: SizedBox.expand(
+    return SizedBox.expand(
+      child: RepaintBoundary(
         child: Image(
           image: imageProvider ?? SwitchingImage.transparentImage,
           fit: fit,
