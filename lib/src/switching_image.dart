@@ -34,7 +34,30 @@ class SwitchingImage extends StatelessWidget {
     this.type = SwitchingImageType.fade,
     this.opacity,
     this.alignment = AlignmentDirectional.topStart,
-  }) : super(key: key);
+  })  : colorBlendMode = null,
+        color = null,
+        filter = false,
+        super(key: key);
+
+  /// Creates a fading [SwitchingImage] with a filter.
+  /// The filter is only applied to the [RawImage]s.
+  const SwitchingImage.filter({
+    Key key,
+    @required this.imageProvider,
+    @required this.color,
+    this.colorBlendMode = BlendMode.saturation,
+    this.idleChild,
+    this.idleOnly = false,
+    this.layoutChildren = const <Widget>[],
+    this.shape,
+    this.duration,
+    this.filterQuality = FilterQuality.low,
+    this.fit = BoxFit.cover,
+    this.opacity,
+    this.alignment = AlignmentDirectional.topStart,
+  })  : type = SwitchingImageType.fade,
+        filter = true,
+        super(key: key);
 
   /// The default duration of transitions. Feel free to reassign this.
   static Duration transitionDuration = const Duration(milliseconds: 300);
@@ -78,6 +101,15 @@ class SwitchingImage extends StatelessWidget {
   /// Alignment of the children in the switchers.
   final AlignmentGeometry alignment;
 
+  /// Blend mode of the internal [ColorFiltered] filter.
+  final BlendMode colorBlendMode;
+
+  /// Color of the internal [ColorFiltered] filter.
+  final Color color;
+
+  /// Whether to wrap images in a [ColorFiltered] widget.
+  final bool filter;
+
   /// Transparent image used as an identifier for when there's no actual image loaded.
   static final transparentImage = MemoryImage(kTransparentImage, scale: 1);
 
@@ -109,19 +141,17 @@ class SwitchingImage extends StatelessWidget {
   /// Default fade transition of [SwitchingImage].
   static Widget fadeTransition(
     Widget widget,
-    Animation<double> animation, [
+    Animation<double> animation, {
     ValueListenable<double> opacity,
     Widget Function(Widget child) wrap,
-  ]) {
+    BlendMode colorBlendMode,
+    Color color,
+    bool filter = false,
+  }) {
     // If a switched in object animates out,
     // its animation will be at 1.0 - isCompleted
     if (animation.isCompleted && opacity == null) {
-      return widget is RawImage
-          ? RepaintBoundary(
-              key: widget.key,
-              child: wrap?.call(widget) ?? widget,
-            )
-          : wrap?.call(widget) ?? widget;
+      return wrap?.call(widget) ?? widget;
     }
 
     // No shader opacity optimization by setting the color opacity on the image.
@@ -150,16 +180,13 @@ class SwitchingImage extends StatelessWidget {
             color: Color.fromRGBO(255, 255, 255, value),
           );
 
-          return RepaintBoundary(
-            key: widget.key,
-            child: wrap?.call(image) ?? image,
-          );
+          return wrap?.call(image) ?? image;
         },
       );
     } else {
       return FadeTransition(
         opacity: animation,
-        child: RepaintBoundary(key: widget.key, child: wrap?.call(widget) ?? widget),
+        child: wrap?.call(widget) ?? widget,
       );
     }
   }
@@ -183,13 +210,37 @@ class SwitchingImage extends StatelessWidget {
       );
 
   /// If [SwitchingImage.shape] is not null, wrap the image in [ClipPath].
-  Widget _withClipper({@required Widget child}) => shape != null
-      ? ClipPath(
-          key: child?.key ?? ValueKey(child.runtimeType),
-          clipper: ShapeBorderClipper(shape: shape),
-          child: child,
-        )
-      : child;
+  Widget _withWrap(Widget _child) {
+    final shouldFilter = filter && _child is RawImage;
+    final shouldShape = shape != null;
+
+    Widget child = RepaintBoundary(child: _child);
+    if (!shouldFilter && !shouldShape) return child; // Return early.
+
+    if (shouldFilter) {
+      // Both `colorBlendMode` and `color` will be passed, if [SwitchingImage]
+      // is supposed to use the filter.
+      assert(colorBlendMode != null);
+      assert(color != null);
+
+      child = ColorFiltered(
+        colorFilter: ColorFilter.mode(color, colorBlendMode),
+        child: child,
+      );
+    }
+
+    if (shouldShape) {
+      child = ClipPath(
+        clipper: ShapeBorderClipper(shape: shape),
+        child: child,
+      );
+    }
+
+    return RepaintBoundary(
+      key: _child?.key,
+      child: child,
+    );
+  }
 
   /// HACK: Raw image keys require a patch for flutter source.
   Widget _frameBuilder(
@@ -216,8 +267,8 @@ class SwitchingImage extends StatelessWidget {
           duration: duration ?? SwitchingImage.transitionDuration,
           alignment: alignment,
           addRepaintBoundary: false,
-          wrapChildrenInRepaintBoundary: false,
-          child: _withClipper(child: switcherChild),
+          wrapChildrenInRepaintBoundary: false, // Handled by the wrap.
+          child: _withWrap(switcherChild),
         );
       case SwitchingImageType.fade:
         return AnimatedSwitcher(
@@ -229,8 +280,11 @@ class SwitchingImage extends StatelessWidget {
           transitionBuilder: (context, animation) => SwitchingImage.fadeTransition(
             context,
             animation,
-            opacity,
-            (child) => _withClipper(child: child),
+            opacity: opacity,
+            wrap: _withWrap,
+            colorBlendMode: colorBlendMode,
+            color: color,
+            filter: filter,
           ),
         );
       default:
