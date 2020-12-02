@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:await_route/await_route.dart';
 import 'package:flutter/material.dart';
 import 'package:animations/animations.dart';
 import 'package:flutter/scheduler.dart';
@@ -18,6 +19,7 @@ class FancySwitcher extends StatefulWidget {
     this.placeholder,
     this.addRepaintBoundary = false,
     this.wrapChildrenInRepaintBoundary = true,
+    this.awaitRoute = false,
   }) : _type = _FancySwitcherType.fade;
 
   /// Creates a [FancySwitcher] with the material vertical axis transition.
@@ -30,6 +32,7 @@ class FancySwitcher extends StatefulWidget {
     this.placeholder,
     this.addRepaintBoundary = false,
     this.wrapChildrenInRepaintBoundary = true,
+    this.awaitRoute = false,
   }) : _type = _FancySwitcherType.axisVertical;
 
   /// Creates a [FancySwitcher] with the material horizontal axis transition.
@@ -42,6 +45,7 @@ class FancySwitcher extends StatefulWidget {
     this.placeholder,
     this.addRepaintBoundary = false,
     this.wrapChildrenInRepaintBoundary = true,
+    this.awaitRoute = false,
   }) : _type = _FancySwitcherType.axisHorizontal;
 
   /// Creates a [FancySwitcher] with the material scale transition;
@@ -54,6 +58,7 @@ class FancySwitcher extends StatefulWidget {
     this.placeholder,
     this.addRepaintBoundary = false,
     this.wrapChildrenInRepaintBoundary = true,
+    this.awaitRoute = false,
   }) : _type = _FancySwitcherType.scaled;
 
   /// Animated child of [FancySwitcher].
@@ -83,47 +88,51 @@ class FancySwitcher extends StatefulWidget {
   /// Wrap the child widgets in a [RepaintBoundary].
   final bool wrapChildrenInRepaintBoundary;
 
+  /// Show a placeholder widget, until the route has animated in.
+  final bool awaitRoute;
+
   @override
   _FancySwitcherState createState() => _FancySwitcherState();
 }
 
 class _FancySwitcherState extends State<FancySwitcher> {
   Widget _child;
-  Timer _timer;
+  Widget get _placeholder => widget.placeholder ?? const SizedBox(key: ValueKey('placeholder'));
 
-  void _cancelTimer() {
-    _timer?.cancel();
-    _timer = null;
-  }
+  Future _scheduleChild(Widget child) async {
+    assert(widget.awaitRoute || widget.delay > Duration.zero);
 
-  void _updateChild() {
-    if (mounted) setState(() => _child = widget.child);
-  }
-
-  void _scheduleChildSwap() {
-    assert(widget.delay > Duration.zero);
-    _timer = Timer(widget.delay * timeDilation, _updateChild);
+    if (widget.awaitRoute) await AwaitRoute.of(context);
+    if (widget.delay > Duration.zero) await Future<void>.delayed(widget.delay);
+    if (mounted && widget.child == child) setState(() => _child = widget.child);
   }
 
   @override
-  void initState() {
-    if (widget.delay > Duration.zero) {
-      _child = widget.placeholder;
-      if (widget.child != null) _scheduleChildSwap();
-    } else {
-      _child = widget.child;
+  void didChangeDependencies() {
+    if (_child == null) {
+      if (widget.delay > Duration.zero || widget.awaitRoute) {
+        _child = _placeholder;
+        if (widget.child != null) _scheduleChild(widget.child);
+      } else {
+        _child = widget.child ?? _placeholder;
+      }
     }
-    super.initState();
+
+    super.didChangeDependencies();
   }
 
   @override
   void didUpdateWidget(covariant FancySwitcher oldWidget) {
-    _cancelTimer();
-
     final oldComparable = oldWidget.child?.key ?? oldWidget.child;
     final newComparable = widget.child?.key ?? widget.child;
 
-    if (oldComparable != newComparable) widget.delay > Duration.zero ? _scheduleChildSwap() : _child = widget.child;
+    if (oldComparable != newComparable) {
+      if (widget.delay > Duration.zero || widget.awaitRoute) {
+        _scheduleChild(widget.child);
+      } else {
+        _child = widget.child ?? _placeholder;
+      }
+    }
     super.didUpdateWidget(oldWidget);
   }
 
@@ -190,7 +199,7 @@ class _FancySwitcherState extends State<FancySwitcher> {
     final transition = PageTransitionSwitcher(
       transitionBuilder: _transition,
       alignment: widget.alignment,
-      child: child ?? const SizedBox(key: ValueKey(false)),
+      child: child,
       duration: widget.duration,
     );
 
@@ -213,7 +222,7 @@ class FancySwitcherTag extends StatelessWidget {
   }) : super(key: key);
 
   /// The tag that's gonna be compared against another switcher child.
-  final Comparable tag;
+  final dynamic tag;
 
   /// Child [Widget] of this [FancySwitcherTag].
   final Widget child;
@@ -222,7 +231,7 @@ class FancySwitcherTag extends StatelessWidget {
   /// If the child is not a [FancySwitcherTag], default to it's own key or runtime key.
   static Key maybeGetKey(Widget child) => child != null
       ? child is FancySwitcherTag
-          ? ValueKey(child.tag)
+          ? ValueKey<dynamic>(child.tag)
           : (child.key ?? ValueKey(child.runtimeType))
       : null;
 
