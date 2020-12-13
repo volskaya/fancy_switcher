@@ -12,14 +12,11 @@ class _ChildEntry {
   /// it's assumed as an index to support reverse switches.
   ///
   /// Also unwrap [FancySwitcherTag]'s child.
-  factory _ChildEntry.fromWidget(Widget widget) {
-    final dynamic tag = FancySwitcherTag.getTag(widget);
-    final key = FancySwitcherTag.getKey(widget);
-    final index = tag is int ? tag : 0;
-    final child = widget is FancySwitcherTag ? widget.child : widget;
-
-    return _ChildEntry._(child, key, index);
-  }
+  factory _ChildEntry.fromWidget(Widget widget) => _ChildEntry._(
+        widget is FancySwitcherTag ? widget.child : widget,
+        FancySwitcherTag.getKey(widget),
+        FancySwitcherTag.getIndex(widget),
+      );
 
   _ChildEntry._(this.widget, this.key, this.index);
 
@@ -143,6 +140,7 @@ class FancySwitcher extends StatefulWidget {
 class _FancySwitcherState extends State<FancySwitcher> {
   _ChildEntry _child;
   bool _reverse = false;
+  dynamic _reverseKey;
   Widget get _placeholder => widget.placeholder ?? const FancySwitcherTag(tag: -1, child: SizedBox.shrink());
 
   static bool _compareChildren(Widget a, Widget b) => (a?.key ?? a) == (b?.key ?? b);
@@ -151,7 +149,17 @@ class _FancySwitcherState extends State<FancySwitcher> {
   // the next switch should animate in reverse.
   void _swapChildEntries(Widget child) {
     final entry = child != null ? _ChildEntry.fromWidget(child) : null;
-    _reverse = entry.index < (_child?.index ?? 0) ? true : false;
+
+    if (entry.index == (_child?.index ?? 0)) {
+      // Indexes default to 0. If swapping entries with the same indexes, check if the new
+      // key matches the previous childs key, to determine whether to reverse the animation.
+      _reverse = entry.key == _reverseKey;
+      if (!_reverse) _reverseKey = _child?.key;
+    } else {
+      _reverse = entry.index < (_child?.index ?? 0) ? true : false;
+      _reverseKey = null;
+    }
+
     _child = entry;
   }
 
@@ -269,8 +277,9 @@ class FancySwitcherTag extends StatelessWidget {
   /// Creates [FancySwitcherTag].
   const FancySwitcherTag({
     Key key,
-    @required this.tag,
     @required this.child,
+    this.tag,
+    this.index,
   }) : super(key: key);
 
   /// The tag that's gonna be compared against another switcher child.
@@ -279,16 +288,26 @@ class FancySwitcherTag extends StatelessWidget {
   /// Child [Widget] of this [FancySwitcherTag].
   final Widget child;
 
+  /// Optional index of this [FancySwitcherTag] to allow [FancySwitcher] to know when
+  /// to run the animation in reverse.
+  ///
+  /// If this is null and the [tag] is an int, the tag is used as the index instead.
+  ///
+  /// You should only use [index] if you don't want the [FancySwitcher] to switch based on the index.
+  final int index;
+
   /// Attempts to extract [FancySwitcherTag] tag as a [ValueKey] from the [child].
   /// If the child is not a [FancySwitcherTag], default to it's own key or runtime key.
   static Key getKey(Widget child) => child != null
-      ? child is FancySwitcherTag
+      ? (child is FancySwitcherTag && child.tag != null)
           ? ValueKey<dynamic>(child.tag)
           : (child.key ?? ValueKey(child.runtimeType))
       : null;
 
   /// Attempt to get the dynamic tag out of [FancySwitcherTag].
-  static dynamic getTag(Widget child) => child != null && child is FancySwitcherTag ? child.tag : null;
+  static int getIndex(Widget child) => child != null && child is FancySwitcherTag
+      ? child.index ?? (child.tag != null && child.tag is int ? child.tag as int : 0)
+      : 0;
 
   @override
   Widget build(BuildContext context) => child;
