@@ -10,15 +10,18 @@ enum _FancySwitcherType { fade, axisVertical, axisHorizontal, scaled }
 class _ChildEntry {
   /// If the widget is a [FancySwitcherTag] and its tag is an int,
   /// it's assumed as an index to support reverse switches.
+  ///
+  /// Also unwrap [FancySwitcherTag]'s child.
   factory _ChildEntry.fromWidget(Widget widget) {
     final dynamic tag = FancySwitcherTag.getTag(widget);
     final key = FancySwitcherTag.getKey(widget);
-    final index = tag is int ? tag : null;
+    final index = tag is int ? tag : 0;
+    final child = widget is FancySwitcherTag ? widget.child : widget;
 
-    return _ChildEntry._(widget, key, index);
+    return _ChildEntry._(child, key, index);
   }
 
-  _ChildEntry._(this.widget, this.key, [this.index]);
+  _ChildEntry._(this.widget, this.key, this.index);
 
   final Widget widget;
   final Key key;
@@ -140,7 +143,7 @@ class FancySwitcher extends StatefulWidget {
 class _FancySwitcherState extends State<FancySwitcher> {
   _ChildEntry _child;
   bool _reverse = false;
-  Widget get _placeholder => widget.placeholder ?? const SizedBox(key: ValueKey('placeholder'));
+  Widget get _placeholder => widget.placeholder ?? const FancySwitcherTag(tag: -1, child: SizedBox.shrink());
 
   static bool _compareChildren(Widget a, Widget b) => (a?.key ?? a) == (b?.key ?? b);
 
@@ -148,12 +151,7 @@ class _FancySwitcherState extends State<FancySwitcher> {
   // the next switch should animate in reverse.
   void _swapChildEntries(Widget child) {
     final entry = child != null ? _ChildEntry.fromWidget(child) : null;
-    if (_child?.index != null && entry?.index != null) {
-      assert(entry.index != _child.index);
-      _reverse = entry.index < _child.index ? true : false;
-    } else {
-      _reverse = false;
-    }
+    _reverse = entry.index < (_child?.index ?? 0) ? true : false;
     _child = entry;
   }
 
