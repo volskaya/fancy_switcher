@@ -42,6 +42,7 @@ class FancySwitcher extends StatefulWidget {
     this.awaitRoute = false,
     this.fillColor = Colors.transparent,
   })  : _type = _FancySwitcherType.fade,
+        assert(placeholder == null || placeholder is! FancySwitcherTag),
         super(key: key);
 
   /// Creates a [FancySwitcher] with the material vertical axis transition.
@@ -59,6 +60,7 @@ class FancySwitcher extends StatefulWidget {
     this.awaitRoute = false,
     this.fillColor = Colors.transparent,
   })  : _type = _FancySwitcherType.axisVertical,
+        assert(placeholder == null || placeholder is! FancySwitcherTag),
         super(key: key);
 
   /// Creates a [FancySwitcher] with the material horizontal axis transition.
@@ -76,6 +78,7 @@ class FancySwitcher extends StatefulWidget {
     this.awaitRoute = false,
     this.fillColor = Colors.transparent,
   })  : _type = _FancySwitcherType.axisHorizontal,
+        assert(placeholder == null || placeholder is! FancySwitcherTag),
         super(key: key);
 
   /// Creates a [FancySwitcher] with the material scale transition;
@@ -93,6 +96,7 @@ class FancySwitcher extends StatefulWidget {
     this.awaitRoute = false,
     this.fillColor = Colors.transparent,
   })  : _type = _FancySwitcherType.scaled,
+        assert(placeholder == null || placeholder is! FancySwitcherTag),
         super(key: key);
 
   /// Animated child of [FancySwitcher].
@@ -141,7 +145,9 @@ class _FancySwitcherState extends State<FancySwitcher> {
   _ChildEntry _child;
   bool _reverse = false;
   dynamic _reverseKey;
-  Widget get _placeholder => widget.placeholder ?? const FancySwitcherTag(tag: -1, child: SizedBox.shrink());
+  Widget get _placeholder => widget.placeholder != null
+      ? FancySwitcherTag(tag: -1, child: widget.placeholder)
+      : const FancySwitcherTag(tag: -1, child: SizedBox.shrink());
 
   static bool _compareChildren(Widget a, Widget b) => (a?.key ?? a) == (b?.key ?? b);
 
@@ -150,13 +156,13 @@ class _FancySwitcherState extends State<FancySwitcher> {
   void _swapChildEntries(Widget child) {
     final entry = child != null ? _ChildEntry.fromWidget(child) : null;
 
-    if (entry.index == (_child?.index ?? 0)) {
+    if ((entry?.index ?? 0) == (_child?.index ?? 0)) {
       // Indexes default to 0. If swapping entries with the same indexes, check if the new
       // key matches the previous childs key, to determine whether to reverse the animation.
-      _reverse = entry.key == _reverseKey;
+      _reverse = entry?.key == _reverseKey;
       if (!_reverse) _reverseKey = _child?.key;
     } else {
-      _reverse = entry.index < (_child?.index ?? 0) ? true : false;
+      _reverse = (entry?.index ?? 0) < (_child?.index ?? 0) ? true : false;
       _reverseKey = null;
     }
 

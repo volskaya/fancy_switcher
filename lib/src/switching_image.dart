@@ -176,8 +176,8 @@ class SwitchingImage extends StatelessWidget {
             debugImageLabel: widget.debugImageLabel,
             matchTextDirection: widget.matchTextDirection,
             image: widget.image,
-            colorBlendMode: BlendMode.modulate,
-            color: Color.fromRGBO(255, 255, 255, value),
+            colorBlendMode: value != 1 ? BlendMode.modulate : null,
+            color: value != 1 ? Color.fromRGBO(255, 255, 255, value) : null,
           );
 
           return wrap?.call(image) ?? image;
@@ -210,12 +210,11 @@ class SwitchingImage extends StatelessWidget {
       );
 
   /// If [SwitchingImage.shape] is not null, wrap the image in [ClipPath].
-  Widget _withWrap(Widget _child) {
-    final shouldFilter = filter && _child is RawImage;
+  Widget _withWrap(Widget _child, {bool useFilter = false}) {
+    final shouldFilter = useFilter && filter && _child is RawImage;
     final shouldShape = shape != null;
 
-    Widget child = RepaintBoundary(child: _child);
-    if (!shouldFilter && !shouldShape) return child; // Return early.
+    Widget child = _child;
 
     if (shouldFilter) {
       // Both `colorBlendMode` and `color` will be passed, if [SwitchingImage]
@@ -256,11 +255,6 @@ class SwitchingImage extends StatelessWidget {
     final isNotTransparent = key?.value != SwitchingImage.transparentImage;
     final switcherChild = isNotTransparent && (hasFrames || hasGaplessImage) ? rawImage : _idleChild;
 
-    // assert(
-    //   switcherChild.key != null,
-    //   'Missing flutter patch with keys on [RawImage] objects',
-    // );
-
     switch (type) {
       case SwitchingImageType.scale:
         return FancySwitcher(
@@ -268,10 +262,10 @@ class SwitchingImage extends StatelessWidget {
           alignment: alignment,
           addRepaintBoundary: false,
           wrapChildrenInRepaintBoundary: false, // Handled by the wrap.
-          child: _withWrap(switcherChild),
+          child: _withWrap(switcherChild, useFilter: true),
         );
       case SwitchingImageType.fade:
-        return AnimatedSwitcher(
+        final switcher = AnimatedSwitcher(
           duration: duration ?? SwitchingImage.transitionDuration,
           switchInCurve: SwitchingImage.transitionCurve,
           switchOutCurve: const Threshold(0),
@@ -287,6 +281,13 @@ class SwitchingImage extends StatelessWidget {
             filter: filter,
           ),
         );
+
+        return filter
+            ? ColorFiltered(
+                colorFilter: ColorFilter.mode(color, colorBlendMode),
+                child: switcher,
+              )
+            : switcher;
       default:
         throw UnimplementedError();
     }
