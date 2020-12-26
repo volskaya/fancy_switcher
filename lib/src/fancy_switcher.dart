@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:animations/animations.dart';
 import 'package:flutter/scheduler.dart';
 
-enum _FancySwitcherType { fade, axisVertical, axisHorizontal, scaled }
+enum FancySwitcherType { fade, axisVertical, axisHorizontal, scaled }
 
 class _ChildEntry {
   /// If the widget is a [FancySwitcherTag] and its tag is an int,
@@ -41,7 +41,7 @@ class FancySwitcher extends StatefulWidget {
     this.wrapChildrenInRepaintBoundary = true,
     this.awaitRoute = false,
     this.fillColor = Colors.transparent,
-  })  : _type = _FancySwitcherType.fade,
+  })  : _type = FancySwitcherType.fade,
         assert(placeholder == null || placeholder is! FancySwitcherTag),
         super(key: key);
 
@@ -59,7 +59,7 @@ class FancySwitcher extends StatefulWidget {
     this.wrapChildrenInRepaintBoundary = true,
     this.awaitRoute = false,
     this.fillColor = Colors.transparent,
-  })  : _type = _FancySwitcherType.axisVertical,
+  })  : _type = FancySwitcherType.axisVertical,
         assert(placeholder == null || placeholder is! FancySwitcherTag),
         super(key: key);
 
@@ -77,7 +77,7 @@ class FancySwitcher extends StatefulWidget {
     this.wrapChildrenInRepaintBoundary = true,
     this.awaitRoute = false,
     this.fillColor = Colors.transparent,
-  })  : _type = _FancySwitcherType.axisHorizontal,
+  })  : _type = FancySwitcherType.axisHorizontal,
         assert(placeholder == null || placeholder is! FancySwitcherTag),
         super(key: key);
 
@@ -95,7 +95,7 @@ class FancySwitcher extends StatefulWidget {
     this.wrapChildrenInRepaintBoundary = true,
     this.awaitRoute = false,
     this.fillColor = Colors.transparent,
-  })  : _type = _FancySwitcherType.scaled,
+  })  : _type = FancySwitcherType.scaled,
         assert(placeholder == null || placeholder is! FancySwitcherTag),
         super(key: key);
 
@@ -121,7 +121,7 @@ class FancySwitcher extends StatefulWidget {
   final Duration delay;
 
   /// The type of the switcher.
-  final _FancySwitcherType _type;
+  final FancySwitcherType _type;
 
   /// Wrap the transition in a [RepaintBoundary].
   final bool addRepaintBoundary;
@@ -209,7 +209,7 @@ class _FancySwitcherState extends State<FancySwitcher> {
     Animation<double> secondaryAnimation,
   ) {
     switch (widget._type) {
-      case _FancySwitcherType.fade:
+      case FancySwitcherType.fade:
         return FadeThroughTransition(
           child: child,
           animation: primaryAnimation,
@@ -218,7 +218,7 @@ class _FancySwitcherState extends State<FancySwitcher> {
           onStatusChanged: widget.onStatusChanged,
           fillColor: widget.fillColor,
         );
-      case _FancySwitcherType.axisVertical:
+      case FancySwitcherType.axisVertical:
         return SharedAxisTransition(
           animation: primaryAnimation,
           secondaryAnimation: secondaryAnimation,
@@ -228,7 +228,7 @@ class _FancySwitcherState extends State<FancySwitcher> {
           onStatusChanged: widget.onStatusChanged,
           fillColor: widget.fillColor,
         );
-      case _FancySwitcherType.axisHorizontal:
+      case FancySwitcherType.axisHorizontal:
         return SharedAxisTransition(
           animation: primaryAnimation,
           secondaryAnimation: secondaryAnimation,
@@ -238,7 +238,7 @@ class _FancySwitcherState extends State<FancySwitcher> {
           onStatusChanged: widget.onStatusChanged,
           fillColor: widget.fillColor,
         );
-      case _FancySwitcherType.scaled:
+      case FancySwitcherType.scaled:
         return SharedAxisTransition(
           animation: primaryAnimation,
           secondaryAnimation: secondaryAnimation,
