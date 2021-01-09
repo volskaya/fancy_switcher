@@ -5,7 +5,20 @@ import 'package:flutter/material.dart';
 import 'package:animations/animations.dart';
 import 'package:flutter/scheduler.dart';
 
-enum FancySwitcherType { fade, axisVertical, axisHorizontal, scaled }
+/// Type of the material animation used in the fancy switcher widgets.
+enum FancySwitcherType {
+  /// Material fade.
+  fade,
+
+  /// Material axis swipe vertical.
+  axisVertical,
+
+  /// Material axis swipe horizontal.
+  axisHorizontal,
+
+  /// Material axis scale center.
+  scaled,
+}
 
 class _ChildEntry {
   /// If the widget is a [FancySwitcherTag] and its tag is an int,
@@ -149,21 +162,22 @@ class _FancySwitcherState extends State<FancySwitcher> {
       ? FancySwitcherTag(tag: -1, child: widget.placeholder)
       : const FancySwitcherTag(tag: -1, child: SizedBox.shrink());
 
-  static bool _compareChildren(Widget a, Widget b) => (a?.key ?? a) == (b?.key ?? b);
+  static bool _compareChildren(Widget a, Widget b) => FancySwitcherTag.canUpdate(a, b);
 
   // When the entries are swapped, their index is compared to determine if
   // the next switch should animate in reverse.
-  void _swapChildEntries(Widget child) {
+  void _swapChildEntries(Widget child, {bool canUpdate = false}) {
     final entry = child != null ? _ChildEntry.fromWidget(child) : null;
 
-    if ((entry?.index ?? 0) == (_child?.index ?? 0)) {
-      // Indexes default to 0. If swapping entries with the same indexes, check if the new
-      // key matches the previous childs key, to determine whether to reverse the animation.
-      _reverse = entry?.key == _reverseKey;
-      if (!_reverse) _reverseKey = _child?.key;
-    } else {
-      _reverse = (entry?.index ?? 0) < (_child?.index ?? 0) ? true : false;
-      _reverseKey = null;
+    if (!canUpdate) {
+      if ((entry?.index ?? 0) == (_child?.index ?? 0)) {
+        // Indexes default to 0. If swapping entries with the same indexes, check if the new
+        // key matches the previous childs key, to determine whether to reverse the animation.
+        _reverse = entry?.key == _reverseKey;
+        if (!_reverse) _reverseKey = _child?.key;
+      } else {
+        _reverse = (entry?.index ?? 0) < (_child?.index ?? 0) ? true : false;
+      }
     }
 
     _child = entry;
@@ -177,29 +191,32 @@ class _FancySwitcherState extends State<FancySwitcher> {
     if (mounted && _compareChildren(widget.child, child)) setState(() => _swapChildEntries(widget.child));
   }
 
+  void _handleChildChange(Widget old, Widget current, {bool isInitial = false}) {
+    if (!_compareChildren(old, current)) {
+      if (widget.delay > Duration.zero || widget.awaitRoute) {
+        if (isInitial) {
+          _swapChildEntries(_placeholder);
+          if (widget.child != null) _scheduleChild(current);
+        } else {
+          _scheduleChild(current ?? _placeholder);
+        }
+      } else {
+        _swapChildEntries(current ?? _placeholder);
+      }
+    } else {
+      _swapChildEntries(current ?? _placeholder, canUpdate: true);
+    }
+  }
+
   @override
   void didChangeDependencies() {
-    if (_child == null) {
-      if (widget.delay > Duration.zero || widget.awaitRoute) {
-        _swapChildEntries(_placeholder);
-        if (widget.child != null) _scheduleChild(widget.child);
-      } else {
-        _swapChildEntries(widget.child ?? _placeholder);
-      }
-    }
-
+    if (_child == null) _handleChildChange(null, widget.child, isInitial: true);
     super.didChangeDependencies();
   }
 
   @override
   void didUpdateWidget(covariant FancySwitcher oldWidget) {
-    if (!_compareChildren(oldWidget.child, widget.child)) {
-      if (widget.delay > Duration.zero || widget.awaitRoute) {
-        _scheduleChild(widget.child);
-      } else {
-        _swapChildEntries(widget.child ?? _placeholder);
-      }
-    }
+    _handleChildChange(oldWidget.child, widget.child);
     super.didUpdateWidget(oldWidget);
   }
 
@@ -256,7 +273,7 @@ class _FancySwitcherState extends State<FancySwitcher> {
   @override
   Widget build(BuildContext context) {
     final child = _child != null
-        ? true && widget.wrapChildrenInRepaintBoundary
+        ? true || widget.wrapChildrenInRepaintBoundary
             ? RepaintBoundary(key: _child.key, child: _child.widget)
             : KeyedSubtree(key: _child.key, child: _child.widget)
         : null;
@@ -269,7 +286,7 @@ class _FancySwitcherState extends State<FancySwitcher> {
       reverse: _reverse,
     );
 
-    return true && widget.addRepaintBoundary ? RepaintBoundary(child: transition) : transition;
+    return true || widget.addRepaintBoundary ? RepaintBoundary(child: transition) : transition;
   }
 }
 
@@ -286,7 +303,8 @@ class FancySwitcherTag extends StatelessWidget {
     @required this.child,
     this.tag,
     this.index,
-  }) : super(key: key);
+  })  : assert(child != null),
+        super(key: key);
 
   /// The tag that's gonna be compared against another switcher child.
   final dynamic tag;
@@ -310,11 +328,25 @@ class FancySwitcherTag extends StatelessWidget {
           : (child.key ?? ValueKey(child.runtimeType))
       : null;
 
+  /// Vairant of [Widget.canUpdate] that also factors in [FancySwitcherTag]'s props.
+  static bool canUpdate(Widget a, Widget b) {
+    final dynamic aTag = a is FancySwitcherTag ? a?.tag : null;
+    final dynamic bTag = b is FancySwitcherTag ? b?.tag : null;
+
+    final dynamic aChild = a is FancySwitcherTag ? a?.child : a;
+    final dynamic bChild = b is FancySwitcherTag ? b?.child : b;
+
+    return aTag == bTag && ((aChild?.key ?? aChild?.runtimeType) == (bChild?.key ?? bChild?.runtimeType));
+  }
+
   /// Attempt to get the dynamic tag out of [FancySwitcherTag].
   static int getIndex(Widget child) => child != null && child is FancySwitcherTag
       ? child.index ?? (child.tag != null && child.tag is int ? child.tag as int : 0)
       : 0;
 
   @override
-  Widget build(BuildContext context) => child;
+  Widget build(BuildContext context) {
+    assert(false, 'FancySwitcherTag is not supposed to be included in the widget tree');
+    return child ?? const SizedBox.shrink();
+  }
 }
