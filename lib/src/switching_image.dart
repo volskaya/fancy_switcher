@@ -34,6 +34,7 @@ class SwitchingImage extends StatelessWidget {
     this.type = SwitchingImageType.fade,
     this.opacity,
     this.alignment = AlignmentDirectional.topStart,
+    this.addRepaintBoundary = true,
   })  : colorBlendMode = null,
         color = null,
         filter = false,
@@ -55,6 +56,7 @@ class SwitchingImage extends StatelessWidget {
     this.fit = BoxFit.cover,
     this.opacity,
     this.alignment = AlignmentDirectional.topStart,
+    this.addRepaintBoundary = true,
   })  : type = SwitchingImageType.fade,
         filter = true,
         super(key: key);
@@ -109,6 +111,9 @@ class SwitchingImage extends StatelessWidget {
 
   /// Whether to wrap images in a [ColorFiltered] widget.
   final bool filter;
+
+  /// Whether to wrap images in a [RepaintBoundary] widget.
+  final bool addRepaintBoundary;
 
   /// Transparent image used as an identifier for when there's no actual image loaded.
   static final transparentImage = MemoryImage(kTransparentImage, scale: 1);
@@ -235,10 +240,15 @@ class SwitchingImage extends StatelessWidget {
       );
     }
 
-    return RepaintBoundary(
-      key: _child?.key,
-      child: child,
-    );
+    return addRepaintBoundary
+        ? RepaintBoundary(
+            key: _child?.key,
+            child: child,
+          )
+        : KeyedSubtree(
+            key: _child?.key,
+            child: child,
+          );
   }
 
   /// HACK: Raw image keys require a patch for flutter source.
@@ -299,19 +309,19 @@ class SwitchingImage extends StatelessWidget {
   Widget build(BuildContext context) {
     if (idleOnly) _idleChild;
 
+    final image = Image(
+      image: imageProvider ?? SwitchingImage.transparentImage,
+      fit: fit,
+      width: double.infinity,
+      height: double.infinity,
+      filterQuality: filterQuality,
+      gaplessPlayback: true,
+      excludeFromSemantics: true,
+      frameBuilder: _frameBuilder,
+    );
+
     return SizedBox.expand(
-      child: RepaintBoundary(
-        child: Image(
-          image: imageProvider ?? SwitchingImage.transparentImage,
-          fit: fit,
-          width: double.infinity,
-          height: double.infinity,
-          filterQuality: filterQuality,
-          gaplessPlayback: true,
-          excludeFromSemantics: true,
-          frameBuilder: _frameBuilder,
-        ),
-      ),
+      child: addRepaintBoundary ? RepaintBoundary(child: image) : image,
     );
   }
 }
