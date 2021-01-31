@@ -13,6 +13,7 @@ class SwitchingMaterialImage extends StatelessWidget {
     @required this.child,
     this.idleChild,
     this.layoutChildren = const <Widget>[],
+    this.borderRadius,
     this.shape,
     this.duration = const Duration(milliseconds: 300),
     this.filterQuality = FilterQuality.low,
@@ -29,7 +30,10 @@ class SwitchingMaterialImage extends StatelessWidget {
   /// [idleChild] will be built instead.
   final Widget idleChild;
 
-  /// Clip shape of the animated switcher box.
+  /// Clip rect shape of the animated switcher box.
+  final BorderRadius borderRadius;
+
+  /// Clip path shape of the animated switcher box.
   final ShapeBorder shape;
 
   /// Duration of the switch transition.
@@ -60,6 +64,7 @@ class SwitchingMaterialImage extends StatelessWidget {
   Widget build(BuildContext context) => SwitchingImage(
         imageProvider: imageProvider,
         idleChild: idleChild,
+        borderRadius: borderRadius,
         shape: shape,
         duration: duration,
         filterQuality: filterQuality,
@@ -70,7 +75,8 @@ class SwitchingMaterialImage extends StatelessWidget {
               type: color != null ? MaterialType.canvas : MaterialType.transparency,
               color: color,
               elevation: elevation,
-              shape: shape,
+              borderRadius: color != null ? borderRadius : null,
+              shape: color != null ? shape : null,
               child: child,
               shadowColor: shadowColor,
             ),

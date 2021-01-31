@@ -12,6 +12,7 @@ dependencies:
   flutter:
     sdk: flutter
   transparent_image: ^1.0.0
+  sliver_tools: ^0.1.10+1
   animations:
     path: /home/projects/packages/flutter_helpers/animations
   await_route:

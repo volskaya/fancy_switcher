@@ -4,6 +4,7 @@ import 'package:await_route/await_route.dart';
 import 'package:flutter/material.dart';
 import 'package:animations/animations.dart';
 import 'package:flutter/scheduler.dart';
+import 'package:sliver_tools/sliver_tools.dart';
 
 /// Type of the material animation used in the fancy switcher widgets.
 enum FancySwitcherType {
@@ -47,13 +48,15 @@ class FancySwitcher extends StatefulWidget {
     this.alignment = Alignment.center,
     this.duration = const Duration(milliseconds: 250),
     this.delay = Duration.zero,
+    this.shouldDelay,
     this.onEnd,
     this.onStatusChanged,
     this.placeholder,
-    this.addRepaintBoundary = true,
-    this.wrapChildrenInRepaintBoundary = true,
+    this.addRepaintBoundary = false,
+    this.wrapChildrenInRepaintBoundary = false,
     this.awaitRoute = false,
     this.fillColor = Colors.transparent,
+    this.sliver = false,
   })  : _type = FancySwitcherType.fade,
         assert(placeholder == null || placeholder is! FancySwitcherTag),
         super(key: key);
@@ -65,6 +68,7 @@ class FancySwitcher extends StatefulWidget {
     this.alignment = Alignment.center,
     this.duration = const Duration(milliseconds: 250),
     this.delay = Duration.zero,
+    this.shouldDelay,
     this.onEnd,
     this.onStatusChanged,
     this.placeholder,
@@ -72,6 +76,7 @@ class FancySwitcher extends StatefulWidget {
     this.wrapChildrenInRepaintBoundary = true,
     this.awaitRoute = false,
     this.fillColor = Colors.transparent,
+    this.sliver = false,
   })  : _type = FancySwitcherType.axisVertical,
         assert(placeholder == null || placeholder is! FancySwitcherTag),
         super(key: key);
@@ -83,6 +88,7 @@ class FancySwitcher extends StatefulWidget {
     this.alignment = Alignment.center,
     this.duration = const Duration(milliseconds: 250),
     this.delay = Duration.zero,
+    this.shouldDelay,
     this.onEnd,
     this.onStatusChanged,
     this.placeholder,
@@ -90,6 +96,7 @@ class FancySwitcher extends StatefulWidget {
     this.wrapChildrenInRepaintBoundary = true,
     this.awaitRoute = false,
     this.fillColor = Colors.transparent,
+    this.sliver = false,
   })  : _type = FancySwitcherType.axisHorizontal,
         assert(placeholder == null || placeholder is! FancySwitcherTag),
         super(key: key);
@@ -101,6 +108,7 @@ class FancySwitcher extends StatefulWidget {
     this.alignment = Alignment.center,
     this.duration = const Duration(milliseconds: 250),
     this.delay = Duration.zero,
+    this.shouldDelay,
     this.onEnd,
     this.onStatusChanged,
     this.placeholder,
@@ -108,6 +116,7 @@ class FancySwitcher extends StatefulWidget {
     this.wrapChildrenInRepaintBoundary = true,
     this.awaitRoute = false,
     this.fillColor = Colors.transparent,
+    this.sliver = false,
   })  : _type = FancySwitcherType.scaled,
         assert(placeholder == null || placeholder is! FancySwitcherTag),
         super(key: key);
@@ -133,6 +142,9 @@ class FancySwitcher extends StatefulWidget {
   /// Delay of the switch.
   final Duration delay;
 
+  /// Optional callback to control when the switch should be delayed.
+  final bool Function() shouldDelay;
+
   /// The type of the switcher.
   final FancySwitcherType _type;
 
@@ -149,6 +161,15 @@ class FancySwitcher extends StatefulWidget {
   ///
   /// Should usually either be transparent or match the background of the switchers container.
   final Color fillColor;
+
+  /// Whether to use sliver layout builder.
+  ///
+  /// This must be toggled, if the switcher is built within a scroll view.
+  final bool sliver;
+
+  /// Layout builder for slivers.
+  static Widget sliverLayoutBuilder(List<Widget> entries, [AlignmentGeometry alignment = Alignment.center]) =>
+      SliverStack(children: entries, positionedAlignment: alignment);
 
   @override
   _FancySwitcherState createState() => _FancySwitcherState();
@@ -187,13 +208,16 @@ class _FancySwitcherState extends State<FancySwitcher> {
     assert(widget.awaitRoute || widget.delay > Duration.zero);
 
     if (widget.awaitRoute) await AwaitRoute.of(context);
-    if (widget.delay > Duration.zero) await Future<void>.delayed(widget.delay * timeDilation);
+    if (widget.delay > Duration.zero && (widget.shouldDelay?.call() ?? true)) {
+      await Future<void>.delayed(widget.delay * timeDilation);
+    }
     if (mounted && _compareChildren(widget.child, child)) setState(() => _swapChildEntries(widget.child));
   }
 
   void _handleChildChange(Widget old, Widget current, {bool isInitial = false}) {
     if (!_compareChildren(old, current)) {
-      if (widget.delay > Duration.zero || widget.awaitRoute) {
+      final willDelay = widget.delay > Duration.zero && (widget.shouldDelay?.call() ?? true);
+      if (willDelay || widget.awaitRoute) {
         if (isInitial) {
           _swapChildEntries(_placeholder);
           if (widget.child != null) _scheduleChild(current);
@@ -234,6 +258,7 @@ class _FancySwitcherState extends State<FancySwitcher> {
           onEnd: widget.onEnd,
           onStatusChanged: widget.onStatusChanged,
           fillColor: widget.fillColor,
+          sliver: widget.sliver,
         );
       case FancySwitcherType.axisVertical:
         return SharedAxisTransition(
@@ -244,6 +269,7 @@ class _FancySwitcherState extends State<FancySwitcher> {
           onEnd: widget.onEnd,
           onStatusChanged: widget.onStatusChanged,
           fillColor: widget.fillColor,
+          sliver: widget.sliver,
         );
       case FancySwitcherType.axisHorizontal:
         return SharedAxisTransition(
@@ -254,6 +280,7 @@ class _FancySwitcherState extends State<FancySwitcher> {
           onEnd: widget.onEnd,
           onStatusChanged: widget.onStatusChanged,
           fillColor: widget.fillColor,
+          sliver: widget.sliver,
         );
       case FancySwitcherType.scaled:
         return SharedAxisTransition(
@@ -264,16 +291,16 @@ class _FancySwitcherState extends State<FancySwitcher> {
           onEnd: widget.onEnd,
           onStatusChanged: widget.onStatusChanged,
           fillColor: widget.fillColor,
+          sliver: widget.sliver,
         );
-      default:
-        throw UnimplementedError();
     }
+    throw UnimplementedError();
   }
 
   @override
   Widget build(BuildContext context) {
     final child = _child != null
-        ? true || widget.wrapChildrenInRepaintBoundary
+        ? !widget.sliver && widget.wrapChildrenInRepaintBoundary
             ? RepaintBoundary(key: _child.key, child: _child.widget)
             : KeyedSubtree(key: _child.key, child: _child.widget)
         : null;
@@ -284,9 +311,10 @@ class _FancySwitcherState extends State<FancySwitcher> {
       child: child,
       duration: widget.duration,
       reverse: _reverse,
+      layoutBuilder: widget.sliver ? FancySwitcher.sliverLayoutBuilder : PageTransitionSwitcher.defaultLayoutBuilder,
     );
 
-    return true || widget.addRepaintBoundary ? RepaintBoundary(child: transition) : transition;
+    return !widget.sliver && widget.addRepaintBoundary ? RepaintBoundary(child: transition) : transition;
   }
 }
 
@@ -294,8 +322,6 @@ class _FancySwitcherState extends State<FancySwitcher> {
 ///
 /// Flutter recently changed the behavior of keys - when the key doesn't change, the widget won't rebuild
 /// on prop changes as well. Note, this might be a bug. I can't reproduce this behavior on a vanilla flutter project.
-///
-/// FIXME: Remove usage of [FancySwitcherTag] when regular keys are fixed.
 class FancySwitcherTag extends StatelessWidget {
   /// Creates [FancySwitcherTag].
   const FancySwitcherTag({

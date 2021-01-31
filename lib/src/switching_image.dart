@@ -25,8 +25,8 @@ class SwitchingImage extends StatelessWidget {
     Key key,
     @required this.imageProvider,
     this.idleChild,
-    this.idleOnly = false,
     this.layoutChildren = const <Widget>[],
+    this.borderRadius,
     this.shape,
     this.duration,
     this.filterQuality = FilterQuality.low,
@@ -48,8 +48,8 @@ class SwitchingImage extends StatelessWidget {
     @required this.color,
     this.colorBlendMode = BlendMode.saturation,
     this.idleChild,
-    this.idleOnly = false,
     this.layoutChildren = const <Widget>[],
+    this.borderRadius,
     this.shape,
     this.duration,
     this.filterQuality = FilterQuality.low,
@@ -78,8 +78,8 @@ class SwitchingImage extends StatelessWidget {
   /// Children [Widget]'s on top of the [Material], in the switcher's layout builder.
   final Iterable<Widget> layoutChildren;
 
-  /// Convenience boolean to return early, with no animated switching logic.
-  final bool idleOnly;
+  /// Clip rect shape of the animated switcher box.
+  final BorderRadius borderRadius;
 
   /// Clip shape of the animated switcher box.
   final ShapeBorder shape;
@@ -122,9 +122,9 @@ class SwitchingImage extends StatelessWidget {
   SwitchingImage copyWith({
     ImageProvider imageProvider,
     Widget idleChild,
-    bool idleOnly,
     Duration duration,
     FilterQuality filterQuality,
+    BorderRadius borderRadius,
     ShapeBorder shape,
     BoxFit fit,
     SwitchingImageType type,
@@ -134,9 +134,9 @@ class SwitchingImage extends StatelessWidget {
         key: key,
         imageProvider: imageProvider ?? this.imageProvider,
         idleChild: idleChild ?? this.idleChild,
-        idleOnly: idleOnly ?? this.idleOnly,
         duration: duration ?? this.duration,
         filterQuality: filterQuality ?? this.filterQuality,
+        borderRadius: borderRadius ?? this.borderRadius,
         shape: shape ?? this.shape,
         fit: fit ?? this.fit,
         type: type ?? this.type,
@@ -155,9 +155,9 @@ class SwitchingImage extends StatelessWidget {
   }) {
     // If a switched in object animates out,
     // its animation will be at 1.0 - isCompleted
-    if (animation.isCompleted && opacity == null) {
-      return wrap?.call(widget) ?? widget;
-    }
+    // if (animation.isCompleted && opacity == null) {
+    //   return wrap?.call(widget) ?? widget;
+    // }
 
     // No shader opacity optimization by setting the color opacity on the image.
     if (widget is RawImage) {
@@ -214,10 +214,10 @@ class SwitchingImage extends StatelessWidget {
         ],
       );
 
-  /// If [SwitchingImage.shape] is not null, wrap the image in [ClipPath].
+  /// If [SwitchingImage.borderRadius] is not null, wrap the image in [ClipPath].
   Widget _withWrap(Widget _child, {bool useFilter = false}) {
     final shouldFilter = useFilter && filter && _child is RawImage;
-    final shouldShape = shape != null;
+    final shouldShape = shape != null || borderRadius != null;
 
     Widget child = _child;
 
@@ -234,21 +234,12 @@ class SwitchingImage extends StatelessWidget {
     }
 
     if (shouldShape) {
-      child = ClipPath(
-        clipper: ShapeBorderClipper(shape: shape),
-        child: child,
-      );
+      child = shape != null
+          ? ClipPath(clipper: ShapeBorderClipper(shape: shape), child: child)
+          : ClipRRect(borderRadius: borderRadius, child: child);
     }
 
-    return addRepaintBoundary
-        ? RepaintBoundary(
-            key: _child?.key,
-            child: child,
-          )
-        : KeyedSubtree(
-            key: _child?.key,
-            child: child,
-          );
+    return KeyedSubtree(key: _child?.key, child: child);
   }
 
   /// HACK: Raw image keys require a patch for flutter source.
@@ -298,17 +289,14 @@ class SwitchingImage extends StatelessWidget {
                 child: switcher,
               )
             : switcher;
-      default:
-        throw UnimplementedError();
     }
+    throw UnimplementedError();
   }
 
   Widget get _idleChild => SizedBox.expand(child: idleChild);
 
   @override
   Widget build(BuildContext context) {
-    if (idleOnly) _idleChild;
-
     final image = Image(
       image: imageProvider ?? SwitchingImage.transparentImage,
       fit: fit,
