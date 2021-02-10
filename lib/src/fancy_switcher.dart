@@ -57,6 +57,7 @@ class FancySwitcher extends StatefulWidget {
     this.awaitRoute = false,
     this.fillColor = Colors.transparent,
     this.sliver = false,
+    this.delayInitialChild = true,
   })  : _type = FancySwitcherType.fade,
         assert(placeholder == null || placeholder is! FancySwitcherTag),
         super(key: key);
@@ -77,6 +78,7 @@ class FancySwitcher extends StatefulWidget {
     this.awaitRoute = false,
     this.fillColor = Colors.transparent,
     this.sliver = false,
+    this.delayInitialChild = true,
   })  : _type = FancySwitcherType.axisVertical,
         assert(placeholder == null || placeholder is! FancySwitcherTag),
         super(key: key);
@@ -97,6 +99,7 @@ class FancySwitcher extends StatefulWidget {
     this.awaitRoute = false,
     this.fillColor = Colors.transparent,
     this.sliver = false,
+    this.delayInitialChild = true,
   })  : _type = FancySwitcherType.axisHorizontal,
         assert(placeholder == null || placeholder is! FancySwitcherTag),
         super(key: key);
@@ -117,6 +120,7 @@ class FancySwitcher extends StatefulWidget {
     this.awaitRoute = false,
     this.fillColor = Colors.transparent,
     this.sliver = false,
+    this.delayInitialChild = true,
   })  : _type = FancySwitcherType.scaled,
         assert(placeholder == null || placeholder is! FancySwitcherTag),
         super(key: key);
@@ -156,6 +160,9 @@ class FancySwitcher extends StatefulWidget {
 
   /// Show a placeholder widget, until the route has animated in.
   final bool awaitRoute;
+
+  /// Whether to apply [delay] to the initial child.
+  final bool delayInitialChild;
 
   /// Fill color built into some transitions. Setting this makes the animation look more materialy, I guess…
   ///
@@ -216,7 +223,13 @@ class _FancySwitcherState extends State<FancySwitcher> {
 
   void _handleChildChange(Widget old, Widget current, {bool isInitial = false}) {
     if (!_compareChildren(old, current)) {
-      final willDelay = widget.delay > Duration.zero && (widget.shouldDelay?.call() ?? true);
+      final shouldDelay = widget.delay > Duration.zero && (widget.shouldDelay?.call() ?? true);
+      final willDelay = isInitial
+          ? widget.delayInitialChild
+              ? shouldDelay
+              : false
+          : shouldDelay;
+
       if (willDelay || widget.awaitRoute) {
         if (isInitial) {
           _swapChildEntries(_placeholder);
