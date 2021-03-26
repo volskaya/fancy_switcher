@@ -15,9 +15,9 @@ typedef FancyViewItemBuilder = Widget Function(BuildContext contex, int index);
 class FancyView extends StatelessWidget {
   /// Creates material fade variant of [FancyView].
   const FancyView.fade({
-    Key key,
-    @required this.itemBuilder,
-    @required this.itemCount,
+    Key? key,
+    required this.itemBuilder,
+    required this.itemCount,
     this.fillColor = Colors.transparent,
     this.swipeDirection = Axis.horizontal,
     this.controller,
@@ -30,9 +30,9 @@ class FancyView extends StatelessWidget {
 
   /// Creates material shared axis vertical variant of [FancyView].
   const FancyView.vertical({
-    Key key,
-    @required this.itemBuilder,
-    @required this.itemCount,
+    Key? key,
+    required this.itemBuilder,
+    required this.itemCount,
     this.fillColor = Colors.transparent,
     this.controller,
     this.addRepaintBoundaries = true,
@@ -45,9 +45,9 @@ class FancyView extends StatelessWidget {
 
   /// Creates material shared axis horizontal variant of [FancyView].
   const FancyView.horizontal({
-    Key key,
-    @required this.itemBuilder,
-    @required this.itemCount,
+    Key? key,
+    required this.itemBuilder,
+    required this.itemCount,
     this.fillColor = Colors.transparent,
     this.controller,
     this.addRepaintBoundaries = true,
@@ -60,9 +60,9 @@ class FancyView extends StatelessWidget {
 
   /// Creates material shared axis scaled variant of [FancyView].
   const FancyView.scaled({
-    Key key,
-    @required this.itemBuilder,
-    @required this.itemCount,
+    Key? key,
+    required this.itemBuilder,
+    required this.itemCount,
     this.fillColor = Colors.transparent,
     this.swipeDirection = Axis.horizontal,
     this.controller,
@@ -91,7 +91,7 @@ class FancyView extends StatelessWidget {
   final Axis swipeDirection;
 
   /// Page controller of the inner [PageView].
-  final PageController controller;
+  final PageController? controller;
 
   /// Whether to wrap child widget in repaint boundaries.
   final bool addRepaintBoundaries;
@@ -100,7 +100,7 @@ class FancyView extends StatelessWidget {
   final Clip clipBehavior;
 
   /// Called when the page changes.
-  final ValueChanged<int> onPageChanged;
+  final ValueChanged<int>? onPageChanged;
 
   /// [ScrollPhysics] of the inner [PageView].
   final ScrollPhysics physics;
@@ -166,10 +166,10 @@ class FancyView extends StatelessWidget {
 
 class _FancyPageView extends StatefulWidget {
   const _FancyPageView({
-    Key key,
-    @required this.itemBuilder,
-    @required this.itemCount,
-    @required this.transitionBuilder,
+    Key? key,
+    required this.itemBuilder,
+    required this.itemCount,
+    required this.transitionBuilder,
     this.swipeDirection = Axis.horizontal,
     this.fillColor = Colors.transparent,
     this.controller,
@@ -184,10 +184,10 @@ class _FancyPageView extends StatefulWidget {
   final Axis swipeDirection;
   final PageTransitionSwitcherTransitionBuilder transitionBuilder;
   final Color fillColor;
-  final PageController controller;
+  final PageController? controller;
   final bool addRepaintBoundaries;
   final Clip clipBehavior;
-  final ValueChanged<int> onPageChanged;
+  final ValueChanged<int>? onPageChanged;
   final ScrollPhysics physics;
 
   @override
@@ -195,22 +195,22 @@ class _FancyPageView extends StatefulWidget {
 }
 
 class __FancyPageViewState extends State<_FancyPageView> {
-  final _goingReverse = ValueNotifier<bool>(null);
+  final _goingReverse = ValueNotifier<bool?>(null);
 
+  late PageController _controller;
   bool _disposeController = false;
-  PageController _controller;
   double _lastValue = 0.0;
 
-  void _handleChange({double value}) {
+  void _handleChange({double? value}) {
     final _value = value ?? (_controller.positions.isNotEmpty ? _controller.page : _controller.initialPage.toDouble());
     if (_lastValue == _value) return; // Redundant.
-    final isStopped = _value.floor() == _value;
+    final isStopped = _value?.floor() == _value;
     if (isStopped) {
       _goingReverse.value = null;
     } else {
-      _goingReverse.value ??= _value < _lastValue;
+      _goingReverse.value ??= (_value ?? 0.0) < _lastValue;
     }
-    _lastValue = _value;
+    _lastValue = _value ?? 0.0;
   }
 
   @override
@@ -226,9 +226,9 @@ class __FancyPageViewState extends State<_FancyPageView> {
   @override
   void dispose() {
     if (_disposeController) {
-      _controller?.dispose();
+      _controller.dispose();
     } else {
-      _controller?.removeListener(_handleChange);
+      _controller.removeListener(_handleChange);
     }
 
     super.dispose();
@@ -274,12 +274,12 @@ class __FancyPageViewState extends State<_FancyPageView> {
 class _FancyViewTransformedChildBuilder extends StatefulWidget {
   /// Creates [_FancyViewTransformedChildBuilder].
   const _FancyViewTransformedChildBuilder({
-    Key key,
-    @required this.controller,
-    @required this.builder,
-    @required this.index,
-    this.child,
-    this.reverse,
+    Key? key,
+    required this.controller,
+    required this.builder,
+    required this.index,
+    required this.child,
+    required this.reverse,
     this.axis = Axis.horizontal,
     this.debug = false,
   }) : super(key: key);
@@ -296,7 +296,7 @@ class _FancyViewTransformedChildBuilder extends StatefulWidget {
   final int index;
 
   /// Whether the [FancyView] is being reversed in reverse.
-  final ValueNotifier<bool> reverse;
+  final ValueNotifier<bool?> reverse;
 
   /// The scroll direction.
   final Axis axis;
@@ -315,8 +315,8 @@ class _FancyViewTransformedChildBuilderState extends State<_FancyViewTransformed
     with TickerProviderStateMixin<_FancyViewTransformedChildBuilder> {
   final _relativeValue = ValueNotifier<double>(0);
 
-  AnimationController _primaryController;
-  AnimationController _secondaryController;
+  late AnimationController _primaryController;
+  late AnimationController _secondaryController;
 
   _Position get _position {
     if (widget.reverse.value == true) {
@@ -375,9 +375,9 @@ class _FancyViewTransformedChildBuilderState extends State<_FancyViewTransformed
     }
   }
 
-  void _handlePageController({double value}) => _relativeValue.value = (value ??
+  void _handlePageController({double? value}) => _relativeValue.value = (value ??
               (widget.controller.positions.isNotEmpty
-                  ? widget.controller.page
+                  ? widget.controller.page ?? widget.controller.initialPage.toDouble()
                   : widget.controller.initialPage.toDouble()))
           .clamp(widget.index - 1, widget.index + 1)
           .toDouble() -
@@ -407,8 +407,8 @@ class _FancyViewTransformedChildBuilderState extends State<_FancyViewTransformed
     widget.reverse.removeListener(_handlePageController);
     widget.controller.removeListener(_handlePageController);
     _relativeValue.dispose();
-    _primaryController?.dispose();
-    _secondaryController?.dispose();
+    _primaryController.dispose();
+    _secondaryController.dispose();
 
     super.dispose();
   }
@@ -449,7 +449,7 @@ class _FancyViewTransformedChildBuilderState extends State<_FancyViewTransformed
               child: Stack(
                 fit: StackFit.expand,
                 children: [
-                  child,
+                  child!,
                   Column(
                     children: [
                       Flexible(child: widget.index.isEven ? debugChild : const SizedBox.expand()),

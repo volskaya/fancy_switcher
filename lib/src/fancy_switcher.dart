@@ -35,7 +35,7 @@ class _ChildEntry {
   _ChildEntry._(this.widget, this.key, this.index);
 
   final Widget widget;
-  final Key key;
+  final Key? key;
   final int index;
 }
 
@@ -43,8 +43,8 @@ class _ChildEntry {
 class FancySwitcher extends StatefulWidget {
   /// Creates a [FancySwitcher] with the material fade transition.
   const FancySwitcher({
-    Key key,
-    @required this.child,
+    Key? key,
+    required this.child,
     this.alignment = Alignment.center,
     this.duration = const Duration(milliseconds: 250),
     this.delay = Duration.zero,
@@ -64,8 +64,8 @@ class FancySwitcher extends StatefulWidget {
 
   /// Creates a [FancySwitcher] with the material vertical axis transition.
   const FancySwitcher.vertical({
-    Key key,
-    @required this.child,
+    Key? key,
+    required this.child,
     this.alignment = Alignment.center,
     this.duration = const Duration(milliseconds: 250),
     this.delay = Duration.zero,
@@ -85,8 +85,8 @@ class FancySwitcher extends StatefulWidget {
 
   /// Creates a [FancySwitcher] with the material horizontal axis transition.
   const FancySwitcher.horizontal({
-    Key key,
-    @required this.child,
+    Key? key,
+    required this.child,
     this.alignment = Alignment.center,
     this.duration = const Duration(milliseconds: 250),
     this.delay = Duration.zero,
@@ -106,8 +106,8 @@ class FancySwitcher extends StatefulWidget {
 
   /// Creates a [FancySwitcher] with the material scale transition;
   const FancySwitcher.scaled({
-    Key key,
-    @required this.child,
+    Key? key,
+    required this.child,
     this.alignment = Alignment.center,
     this.duration = const Duration(milliseconds: 250),
     this.delay = Duration.zero,
@@ -126,19 +126,19 @@ class FancySwitcher extends StatefulWidget {
         super(key: key);
 
   /// Animated child of [FancySwitcher].
-  final Widget child;
+  final Widget? child;
 
   /// Temporary child to build when using [delay], before the real [child] is built.
-  final Widget placeholder;
+  final Widget? placeholder;
 
   /// Box alignment of children within the animated switcher.
   final AlignmentGeometry alignment;
 
   /// Callback when the transation ends.
-  final VoidCallback onEnd;
+  final VoidCallback? onEnd;
 
   /// Callback when the animation status changes. This is called before [onEnd].
-  final ValueChanged<AnimationStatus> onStatusChanged;
+  final ValueChanged<AnimationStatus>? onStatusChanged;
 
   /// The duration of the switch animation.
   final Duration duration;
@@ -147,7 +147,7 @@ class FancySwitcher extends StatefulWidget {
   final Duration delay;
 
   /// Optional callback to control when the switch should be delayed.
-  final bool Function() shouldDelay;
+  final bool Function()? shouldDelay;
 
   /// The type of the switcher.
   final FancySwitcherType _type;
@@ -183,18 +183,18 @@ class FancySwitcher extends StatefulWidget {
 }
 
 class _FancySwitcherState extends State<FancySwitcher> {
-  _ChildEntry _child;
+  _ChildEntry? _child;
   bool _reverse = false;
   dynamic _reverseKey;
   Widget get _placeholder => widget.placeholder != null
-      ? FancySwitcherTag(tag: -1, child: widget.placeholder)
+      ? FancySwitcherTag(tag: -1, child: widget.placeholder!)
       : const FancySwitcherTag(tag: -1, child: SizedBox.shrink());
 
-  static bool _compareChildren(Widget a, Widget b) => FancySwitcherTag.canUpdate(a, b);
+  static bool _compareChildren(Widget? a, Widget? b) => FancySwitcherTag.canUpdate(a, b);
 
   // When the entries are swapped, their index is compared to determine if
   // the next switch should animate in reverse.
-  void _swapChildEntries(Widget child, {bool canUpdate = false}) {
+  void _swapChildEntries(Widget? child, {bool canUpdate = false}) {
     final entry = child != null ? _ChildEntry.fromWidget(child) : null;
 
     if (!canUpdate) {
@@ -221,7 +221,7 @@ class _FancySwitcherState extends State<FancySwitcher> {
     if (mounted && _compareChildren(widget.child, child)) setState(() => _swapChildEntries(widget.child));
   }
 
-  void _handleChildChange(Widget old, Widget current, {bool isInitial = false}) {
+  void _handleChildChange(Widget? old, Widget? current, {bool isInitial = false}) {
     if (!_compareChildren(old, current)) {
       final shouldDelay = widget.delay > Duration.zero && (widget.shouldDelay?.call() ?? true);
       final willDelay = isInitial
@@ -233,7 +233,7 @@ class _FancySwitcherState extends State<FancySwitcher> {
       if (willDelay || widget.awaitRoute) {
         if (isInitial) {
           _swapChildEntries(_placeholder);
-          if (widget.child != null) _scheduleChild(current);
+          if (current != null) _scheduleChild(current);
         } else {
           _scheduleChild(current ?? _placeholder);
         }
@@ -307,15 +307,14 @@ class _FancySwitcherState extends State<FancySwitcher> {
           sliver: widget.sliver,
         );
     }
-    throw UnimplementedError();
   }
 
   @override
   Widget build(BuildContext context) {
     final child = _child != null
         ? !widget.sliver && widget.wrapChildrenInRepaintBoundary
-            ? RepaintBoundary(key: _child.key, child: _child.widget)
-            : KeyedSubtree(key: _child.key, child: _child.widget)
+            ? RepaintBoundary(key: _child!.key, child: _child!.widget)
+            : KeyedSubtree(key: _child!.key, child: _child!.widget)
         : null;
 
     final transition = PageTransitionSwitcher(
@@ -338,15 +337,14 @@ class _FancySwitcherState extends State<FancySwitcher> {
 class FancySwitcherTag extends StatelessWidget {
   /// Creates [FancySwitcherTag].
   const FancySwitcherTag({
-    Key key,
-    @required this.child,
+    Key? key,
+    required this.child,
     this.tag,
     this.index,
-  })  : assert(child != null),
-        super(key: key);
+  }) : super(key: key);
 
   /// The tag that's gonna be compared against another switcher child.
-  final dynamic tag;
+  final dynamic? tag;
 
   /// Child [Widget] of this [FancySwitcherTag].
   final Widget child;
@@ -357,35 +355,35 @@ class FancySwitcherTag extends StatelessWidget {
   /// If this is null and the [tag] is an int, the tag is used as the index instead.
   ///
   /// You should only use [index] if you don't want the [FancySwitcher] to switch based on the index.
-  final int index;
+  final int? index;
 
   /// Attempts to extract [FancySwitcherTag] tag as a [ValueKey] from the [child].
   /// If the child is not a [FancySwitcherTag], default to it's own key or runtime key.
-  static Key getKey(Widget child) => child != null
+  static Key? getKey(Widget? child) => child != null
       ? (child is FancySwitcherTag && child.tag != null)
           ? ValueKey<dynamic>(child.tag)
           : (child.key ?? ValueKey(child.runtimeType))
       : null;
 
   /// Vairant of [Widget.canUpdate] that also factors in [FancySwitcherTag]'s props.
-  static bool canUpdate(Widget a, Widget b) {
-    final dynamic aTag = a is FancySwitcherTag ? a?.tag : null;
-    final dynamic bTag = b is FancySwitcherTag ? b?.tag : null;
+  static bool canUpdate(Widget? a, Widget? b) {
+    final dynamic aTag = a is FancySwitcherTag ? a.tag : null;
+    final dynamic bTag = b is FancySwitcherTag ? b.tag : null;
 
-    final dynamic aChild = a is FancySwitcherTag ? a?.child : a;
-    final dynamic bChild = b is FancySwitcherTag ? b?.child : b;
+    final dynamic aChild = a is FancySwitcherTag ? a.child : a;
+    final dynamic bChild = b is FancySwitcherTag ? b.child : b;
 
     return aTag == bTag && ((aChild?.key ?? aChild?.runtimeType) == (bChild?.key ?? bChild?.runtimeType));
   }
 
   /// Attempt to get the dynamic tag out of [FancySwitcherTag].
-  static int getIndex(Widget child) => child != null && child is FancySwitcherTag
+  static int getIndex(Widget? child) => child != null && child is FancySwitcherTag
       ? child.index ?? (child.tag != null && child.tag is int ? child.tag as int : 0)
       : 0;
 
   @override
   Widget build(BuildContext context) {
     assert(false, 'FancySwitcherTag is not supposed to be included in the widget tree');
-    return child ?? const SizedBox.shrink();
+    return child;
   }
 }

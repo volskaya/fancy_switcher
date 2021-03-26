@@ -8,9 +8,9 @@ import 'package:flutter/material.dart';
 class SwitchingMaterialImage extends StatelessWidget {
   /// Creates [SwitchingMaterialImage].
   const SwitchingMaterialImage({
-    Key key,
-    @required this.imageProvider,
-    @required this.child,
+    Key? key,
+    required this.imageProvider,
+    required this.child,
     this.idleChild,
     this.layoutChildren = const <Widget>[],
     this.borderRadius,
@@ -21,20 +21,21 @@ class SwitchingMaterialImage extends StatelessWidget {
     this.color,
     this.elevation = 0,
     this.shadowColor,
+    this.resize = false,
   }) : super(key: key);
 
   /// [ImageProvider] to switch to.
-  final ImageProvider imageProvider;
+  final ImageProvider? imageProvider;
 
   /// While [SwitchingImage.imageProvider] is not loaded an optional
   /// [idleChild] will be built instead.
-  final Widget idleChild;
+  final Widget? idleChild;
 
   /// Clip rect shape of the animated switcher box.
-  final BorderRadius borderRadius;
+  final BorderRadius? borderRadius;
 
   /// Clip path shape of the animated switcher box.
-  final ShapeBorder shape;
+  final ShapeBorder? shape;
 
   /// Duration of the switch transition.
   final Duration duration;
@@ -55,10 +56,13 @@ class SwitchingMaterialImage extends StatelessWidget {
   final double elevation;
 
   /// [Material]'s color. Must be defined to draw elevation.
-  final Color color;
+  final Color? color;
 
   /// [Material]'s shadow color.
-  final Color shadowColor;
+  final Color? shadowColor;
+
+  /// Whether to use [ResizeImage] & [LayoutBuilder] on the image provider.
+  final bool resize;
 
   @override
   Widget build(BuildContext context) => SwitchingImage(

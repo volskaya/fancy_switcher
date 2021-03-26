@@ -3,23 +3,19 @@ description: Flutter widgets for fancy animations of other widgets and images.
 version: 0.0.1
 author: Roland Volskaya
 homepage: github.com/volskaya/fancy_switcher
+publish_to: none
 
 environment:
-  sdk: ">=2.7.0 <3.0.0"
+  sdk: ">=2.12.0 <3.0.0"
   flutter: ">=1.17.0 <2.0.0"
 
 dependencies:
   flutter:
     sdk: flutter
-  transparent_image: ^1.0.0
-  sliver_tools: ^0.1.10+1
+
+  sliver_tools: ^0.2.0
+
   animations:
     path: /home/projects/packages/flutter_helpers/animations
   await_route:
     path: /home/projects/packages/flutter_helpers/await_route
-
-dev_dependencies:
-  flutter_test:
-    sdk: flutter
-
-flutter:
