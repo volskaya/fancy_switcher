@@ -167,7 +167,7 @@ class SwitchingImage extends StatelessWidget {
     // No shader opacity optimization by setting the color opacity on the image.
     //
     // ignore:dead_code
-    if (false && widget is RawImage) {
+    if (widget is RawImage) {
       return AnimatedBuilder(
         animation: opacity != null ? Listenable.merge([animation, opacity]) : animation,
         builder: (_, __) {
