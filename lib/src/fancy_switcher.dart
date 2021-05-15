@@ -344,7 +344,7 @@ class FancySwitcherTag extends StatelessWidget {
   }) : super(key: key);
 
   /// The tag that's gonna be compared against another switcher child.
-  final dynamic? tag;
+  final dynamic tag;
 
   /// Child [Widget] of this [FancySwitcherTag].
   final Widget child;

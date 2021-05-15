@@ -22,6 +22,7 @@ class SwitchingMaterialImage extends StatelessWidget {
     this.elevation = 0,
     this.shadowColor,
     this.resize = false,
+    this.expandBox = true,
   }) : super(key: key);
 
   /// [ImageProvider] to switch to.
@@ -64,6 +65,9 @@ class SwitchingMaterialImage extends StatelessWidget {
   /// Whether to use [ResizeImage] & [LayoutBuilder] on the image provider.
   final bool resize;
 
+  /// Whether to wrap the widget in [SizedBox.expand].
+  final bool expandBox;
+
   @override
   Widget build(BuildContext context) => SwitchingImage(
         imageProvider: imageProvider,
@@ -73,6 +77,7 @@ class SwitchingMaterialImage extends StatelessWidget {
         duration: duration,
         filterQuality: filterQuality,
         fit: fit,
+        expandBox: expandBox,
         layoutChildren: [
           RepaintBoundary(
             child: Material(

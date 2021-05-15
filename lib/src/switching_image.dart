@@ -36,6 +36,7 @@ class SwitchingImage extends StatelessWidget {
     this.alignment = AlignmentDirectional.topStart,
     this.addRepaintBoundary = true,
     this.resize = false,
+    this.expandBox = false,
   })  : colorBlendMode = null,
         color = null,
         filter = false,
@@ -59,6 +60,7 @@ class SwitchingImage extends StatelessWidget {
     this.alignment = AlignmentDirectional.topStart,
     this.addRepaintBoundary = true,
     this.resize = false,
+    this.expandBox = false,
   })  : type = SwitchingImageType.fade,
         filter = true,
         super(key: key);
@@ -122,6 +124,9 @@ class SwitchingImage extends StatelessWidget {
 
   /// Whether to use [ResizeImage] & [LayoutBuilder] on the image provider.
   final bool resize;
+
+  /// Whether to wrap the widget in [SizedBox.expand].
+  final bool expandBox;
 
   /// Creates a copy of [SwitchingImage].
   SwitchingImage copyWith({
@@ -300,8 +305,8 @@ class SwitchingImage extends StatelessWidget {
 
   Widget _buildImage([BoxConstraints? constraints]) => Image(
         fit: fit,
-        width: double.infinity,
-        height: double.infinity,
+        width: expandBox ? double.infinity : null,
+        height: expandBox ? double.infinity : null,
         filterQuality: filterQuality,
         gaplessPlayback: true,
         excludeFromSemantics: true,
@@ -320,6 +325,7 @@ class SwitchingImage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final image = resize ? LayoutBuilder(builder: (_, c) => _buildImage(c)) : _buildImage();
-    return SizedBox.expand(child: addRepaintBoundary ? RepaintBoundary(child: image) : image);
+    final repaintBoundary = addRepaintBoundary ? RepaintBoundary(child: image) : image;
+    return expandBox ? SizedBox.expand(child: repaintBoundary) : repaintBoundary;
   }
 }
