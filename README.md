@@ -1,5 +1,3 @@
-###### WIP - Needs a Flutter patch to link decoded RawImage with its image provider.
-
 # Fancy Switcher
 
 Wrapper for `animations` package to abstract away transitions and just use the widget as an animated switcher.
