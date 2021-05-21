@@ -72,6 +72,10 @@ class SwitchingImage extends StatelessWidget {
   /// This only works for [SwitchingImageType.fade] as the other types use transitions from the animations package.
   static Curve transitionCurve = decelerateEasing;
 
+  /// When this is set to `true`, the image switching animation will animate
+  /// the alpha color of the image, if the animating child is [RawImage].
+  static bool enableRawImageOptimization = true;
+
   /// [ImageProvider] to switch to.
   final ImageProvider? imageProvider;
 
@@ -172,7 +176,7 @@ class SwitchingImage extends StatelessWidget {
     // No shader opacity optimization by setting the color opacity on the image.
     //
     // ignore:dead_code
-    if (widget is RawImage) {
+    if (SwitchingImage.enableRawImageOptimization && widget is RawImage) {
       return AnimatedBuilder(
         animation: opacity != null ? Listenable.merge([animation, opacity]) : animation,
         builder: (_, __) {
