@@ -14,8 +14,10 @@ class SwitchingMaterialImage extends StatelessWidget {
     this.idleChild,
     this.layoutChildren = const <Widget>[],
     this.borderRadius,
+    this.type,
     this.shape,
-    this.duration = const Duration(milliseconds: 300),
+    this.duration,
+    this.curve,
     this.filterQuality = FilterQuality.low,
     this.fit = BoxFit.cover,
     this.color,
@@ -39,13 +41,19 @@ class SwitchingMaterialImage extends StatelessWidget {
   final ShapeBorder? shape;
 
   /// Duration of the switch transition.
-  final Duration duration;
+  final Duration? duration;
+
+  /// Curve of the switch transition.
+  final Curve? curve;
 
   /// Filter quality of the image.
   final FilterQuality filterQuality;
 
   /// Box fit of the image.
   final BoxFit fit;
+
+  /// Transition type used by the animated switcher within [SwitchingImage].
+  final SwitchingImageType? type;
 
   /// Child [Widget] of the [Material].
   final Widget child;
@@ -77,6 +85,8 @@ class SwitchingMaterialImage extends StatelessWidget {
         duration: duration,
         filterQuality: filterQuality,
         fit: fit,
+        curve: curve,
+        type: type,
         expandBox: expandBox,
         layoutChildren: [
           RepaintBoundary(
