@@ -83,7 +83,7 @@ class SwitchingImage extends StatelessWidget {
   static Curve transitionCurve = decelerateEasing;
 
   /// The default type of [SwitchingImage]s.
-  static SwitchingImageType defaultType = SwitchingImageType.fade;
+  static SwitchingImageType transitionType = SwitchingImageType.fade;
 
   /// When this is set to `true`, the image switching animation will animate
   /// the alpha color of the image, if the animating child is [RawImage].
@@ -273,7 +273,7 @@ class SwitchingImage extends StatelessWidget {
     int? frame,
     bool wasSynchronouslyLoaded,
   ) {
-    final type = this.type ?? defaultType;
+    final type = this.type ?? transitionType;
     final rawImage = child as RawImage?;
     final hasFrames = frame != null || wasSynchronouslyLoaded;
     final hasGaplessImage = rawImage?.image != null;
