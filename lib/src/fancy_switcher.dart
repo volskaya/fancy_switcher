@@ -1,8 +1,8 @@
 import 'dart:async';
 
+import 'package:animations/animations.dart';
 import 'package:await_route/await_route.dart';
 import 'package:flutter/material.dart';
-import 'package:animations/animations.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:sliver_tools/sliver_tools.dart';
 
@@ -215,10 +215,13 @@ class _FancySwitcherState extends State<FancySwitcher> {
     assert(widget.awaitRoute || widget.delay > Duration.zero);
 
     if (widget.awaitRoute) await AwaitRoute.of(context);
-    if (widget.delay > Duration.zero && (widget.shouldDelay?.call() ?? true)) {
+    if (mounted && widget.delay > Duration.zero && (widget.shouldDelay?.call() ?? true)) {
       await Future<void>.delayed(widget.delay * timeDilation);
     }
-    if (mounted && _compareChildren(widget.child, child)) setState(() => _swapChildEntries(widget.child));
+    if (mounted && _compareChildren(widget.child, child)) {
+      _swapChildEntries(widget.child);
+      markNeedsBuild();
+    }
   }
 
   void _handleChildChange(Widget? old, Widget? current, {bool isInitial = false}) {

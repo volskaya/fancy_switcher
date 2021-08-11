@@ -85,6 +85,8 @@ class SwitchingImage extends StatelessWidget {
   /// The default type of [SwitchingImage]s.
   static SwitchingImageType transitionType = SwitchingImageType.fade;
 
+  static bool skipAnimationForSimilarImages = false;
+
   /// When this is set to `true`, the image switching animation will animate
   /// the alpha color of the image, if the animating child is [RawImage].
   static bool enableRawImageOptimization = true;
@@ -172,18 +174,20 @@ class SwitchingImage extends StatelessWidget {
     // its animation will be at 1.0 - isCompleted.
     //
     // FIXME: This causes a relayout.
-    if (isSimilar || (animation.isCompleted && opacity == null)) {
+    if (isSimilar && skipAnimationForSimilarImages) {
       return wrap?.call(widget) ?? widget;
     }
 
     // If the image is similar, fallback to fade animations.
-    switch (type) {
-      case SwitchingImageType.slide:
-        return SlideAnimation(
-          animation: animation,
-          child: wrap?.call(widget) ?? widget,
-        );
-      default: // Pass through.
+    if (!isSimilar) {
+      switch (type) {
+        case SwitchingImageType.slide:
+          return SlideAnimation(
+            animation: animation,
+            child: wrap?.call(widget) ?? widget,
+          );
+        default: // Pass through.
+      }
     }
 
     // No shader opacity optimization by setting the color opacity on the image.

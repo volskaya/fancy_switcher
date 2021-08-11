@@ -204,7 +204,7 @@ class __FancyPageViewState extends State<_FancyPageView> {
   void _handleChange({double? value}) {
     final _value = value ?? (_controller.positions.isNotEmpty ? _controller.page : _controller.initialPage.toDouble());
     if (_lastValue == _value) return; // Redundant.
-    final isStopped = _value?.floor() == _value;
+    final isStopped = _value?.toInt() == _value;
     if (isStopped) {
       _goingReverse.value = null;
     } else {
