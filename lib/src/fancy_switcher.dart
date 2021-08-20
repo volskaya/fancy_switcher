@@ -58,6 +58,7 @@ class FancySwitcher extends StatefulWidget {
     this.fillColor = Colors.transparent,
     this.sliver = false,
     this.delayInitialChild = true,
+    this.instantSize = false,
   })  : _type = FancySwitcherType.fade,
         assert(placeholder == null || placeholder is! FancySwitcherTag),
         super(key: key);
@@ -79,6 +80,7 @@ class FancySwitcher extends StatefulWidget {
     this.fillColor = Colors.transparent,
     this.sliver = false,
     this.delayInitialChild = true,
+    this.instantSize = false,
   })  : _type = FancySwitcherType.axisVertical,
         assert(placeholder == null || placeholder is! FancySwitcherTag),
         super(key: key);
@@ -100,6 +102,7 @@ class FancySwitcher extends StatefulWidget {
     this.fillColor = Colors.transparent,
     this.sliver = false,
     this.delayInitialChild = true,
+    this.instantSize = false,
   })  : _type = FancySwitcherType.axisHorizontal,
         assert(placeholder == null || placeholder is! FancySwitcherTag),
         super(key: key);
@@ -121,6 +124,7 @@ class FancySwitcher extends StatefulWidget {
     this.fillColor = Colors.transparent,
     this.sliver = false,
     this.delayInitialChild = true,
+    this.instantSize = false,
   })  : _type = FancySwitcherType.scaled,
         assert(placeholder == null || placeholder is! FancySwitcherTag),
         super(key: key);
@@ -169,6 +173,12 @@ class FancySwitcher extends StatefulWidget {
   /// Should usually either be transparent or match the background of the switchers container.
   final Color fillColor;
 
+  /// When `true`, the layout will size it to the last child's size, even if any
+  /// other children are still animating out.
+  ///
+  /// This doesn't support [sliver] layout.
+  final bool instantSize;
+
   /// Whether to use sliver layout builder.
   ///
   /// This must be toggled, if the switcher is built within a scroll view.
@@ -187,8 +197,8 @@ class _FancySwitcherState extends State<FancySwitcher> {
   bool _reverse = false;
   dynamic _reverseKey;
   Widget get _placeholder => widget.placeholder != null
-      ? FancySwitcherTag(tag: -1, child: widget.placeholder!)
-      : const FancySwitcherTag(tag: -1, child: SizedBox.shrink());
+      ? FancySwitcherTag(tag: FancySwitcherTag.placeholderTag, child: widget.placeholder!)
+      : const FancySwitcherTag(tag: FancySwitcherTag.placeholderTag, child: SizedBox.shrink());
 
   static bool _compareChildren(Widget? a, Widget? b) => FancySwitcherTag.canUpdate(a, b);
 
@@ -312,6 +322,18 @@ class _FancySwitcherState extends State<FancySwitcher> {
     }
   }
 
+  Widget _buildLayout(List<Widget> entries, [AlignmentGeometry alignment = Alignment.center]) => widget.sliver
+      ? FancySwitcher.sliverLayoutBuilder(entries, alignment)
+      : PageTransitionSwitcher.defaultLayoutBuilder(
+          entries,
+          alignment,
+          widget.instantSize
+              ? _reverse
+                  ? StackSizeTarget.firstChild
+                  : StackSizeTarget.lastChild
+              : StackSizeTarget.expand,
+        );
+
   @override
   Widget build(BuildContext context) {
     final child = _child != null
@@ -326,7 +348,7 @@ class _FancySwitcherState extends State<FancySwitcher> {
       child: child,
       duration: widget.duration,
       reverse: _reverse,
-      layoutBuilder: widget.sliver ? FancySwitcher.sliverLayoutBuilder : PageTransitionSwitcher.defaultLayoutBuilder,
+      layoutBuilder: _buildLayout,
     );
 
     return !widget.sliver && widget.addRepaintBoundary ? RepaintBoundary(child: transition) : transition;
@@ -345,6 +367,9 @@ class FancySwitcherTag extends StatelessWidget {
     this.tag,
     this.index,
   }) : super(key: key);
+
+  /// Tag of the placeholder widget used in [FancySwicher].
+  static const placeholderTag = -1;
 
   /// The tag that's gonna be compared against another switcher child.
   final dynamic tag;

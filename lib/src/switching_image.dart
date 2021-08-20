@@ -172,8 +172,6 @@ class SwitchingImage extends StatelessWidget {
 
     // If a switched in object animates out,
     // its animation will be at 1.0 - isCompleted.
-    //
-    // FIXME: This causes a relayout.
     if (isSimilar && skipAnimationForSimilarImages) {
       return wrap?.call(widget) ?? widget;
     }
