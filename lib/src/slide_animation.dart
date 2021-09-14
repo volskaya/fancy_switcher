@@ -20,12 +20,15 @@ class SlideAnimation extends AnimatedWidget {
   @override
   Widget build(BuildContext context) {
     final offset = ui.lerpDouble(-24.0, 0.0, animation.value)!;
+    final toggled = animation.value != 1.0;
 
     return ClipRect(
+      clipBehavior: toggled ? Clip.hardEdge : Clip.none,
       clipper: _Clipper(value: animation.value),
       child: Transform.translate(
         offset: Offset(offset, 0),
         child: child,
+        toggled: toggled,
       ),
     );
   }

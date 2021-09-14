@@ -1,7 +1,6 @@
 name: fancy_switcher
 description: Flutter widgets for fancy animations of other widgets and images.
 version: 0.0.1
-author: Roland Volskaya
 homepage: github.com/volskaya/fancy_switcher
 publish_to: none
 

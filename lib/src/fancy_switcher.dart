@@ -52,15 +52,20 @@ class FancySwitcher extends StatefulWidget {
     this.onEnd,
     this.onStatusChanged,
     this.placeholder,
-    this.addRepaintBoundary = false,
-    this.wrapChildrenInRepaintBoundary = false,
+    this.addRepaintBoundary = true,
+    this.wrapChildrenInRepaintBoundary = true,
     this.awaitRoute = false,
     this.fillColor = Colors.transparent,
     this.sliver = false,
+    this.reverse = true,
+    this.inherit = false,
+    this.paintInheritedAnimations = false,
+    this.wrapInheritBoundary = false,
     this.delayInitialChild = true,
     this.instantSize = false,
   })  : _type = FancySwitcherType.fade,
         assert(placeholder == null || placeholder is! FancySwitcherTag),
+        assert(!paintInheritedAnimations || inherit),
         super(key: key);
 
   /// Creates a [FancySwitcher] with the material vertical axis transition.
@@ -74,11 +79,15 @@ class FancySwitcher extends StatefulWidget {
     this.onEnd,
     this.onStatusChanged,
     this.placeholder,
-    this.addRepaintBoundary = true,
+    this.addRepaintBoundary = false,
     this.wrapChildrenInRepaintBoundary = true,
     this.awaitRoute = false,
     this.fillColor = Colors.transparent,
     this.sliver = false,
+    this.reverse = true,
+    this.inherit = false,
+    this.paintInheritedAnimations = false,
+    this.wrapInheritBoundary = false,
     this.delayInitialChild = true,
     this.instantSize = false,
   })  : _type = FancySwitcherType.axisVertical,
@@ -96,15 +105,20 @@ class FancySwitcher extends StatefulWidget {
     this.onEnd,
     this.onStatusChanged,
     this.placeholder,
-    this.addRepaintBoundary = true,
+    this.addRepaintBoundary = false,
     this.wrapChildrenInRepaintBoundary = true,
     this.awaitRoute = false,
     this.fillColor = Colors.transparent,
     this.sliver = false,
+    this.reverse = true,
+    this.inherit = false,
+    this.paintInheritedAnimations = false,
+    this.wrapInheritBoundary = false,
     this.delayInitialChild = true,
     this.instantSize = false,
   })  : _type = FancySwitcherType.axisHorizontal,
         assert(placeholder == null || placeholder is! FancySwitcherTag),
+        assert(!paintInheritedAnimations || inherit),
         super(key: key);
 
   /// Creates a [FancySwitcher] with the material scale transition;
@@ -118,15 +132,20 @@ class FancySwitcher extends StatefulWidget {
     this.onEnd,
     this.onStatusChanged,
     this.placeholder,
-    this.addRepaintBoundary = true,
+    this.addRepaintBoundary = false,
     this.wrapChildrenInRepaintBoundary = true,
     this.awaitRoute = false,
     this.fillColor = Colors.transparent,
     this.sliver = false,
+    this.reverse = false,
+    this.inherit = false,
+    this.paintInheritedAnimations = false,
+    this.wrapInheritBoundary = false,
     this.delayInitialChild = true,
     this.instantSize = false,
   })  : _type = FancySwitcherType.scaled,
         assert(placeholder == null || placeholder is! FancySwitcherTag),
+        assert(!paintInheritedAnimations || inherit),
         super(key: key);
 
   /// Animated child of [FancySwitcher].
@@ -184,6 +203,27 @@ class FancySwitcher extends StatefulWidget {
   /// This must be toggled, if the switcher is built within a scroll view.
   final bool sliver;
 
+  /// Whether to allow the switcher to animate in reverse.
+  ///
+  /// Reverse animation would happen if the same widget got switched back or a
+  /// [FancySwitcherTag] was built with a lower index.
+  ///
+  /// Most material transitions are supposed to support reverse except the
+  /// fade through animation.
+  final bool reverse;
+
+  /// Whether to defer the animations to [InheritedAnimationCoordinator].
+  ///
+  /// If this is toggled, you are responsible for building [InheritedAnimation]
+  /// somewhere down the widget tree.
+  final bool inherit;
+
+  /// Whether to paint any deferred animations before the child.
+  final bool paintInheritedAnimations;
+
+  /// Whether to add an [InheritedAnimationCoordinator.boundary] to avoid inheriting parent animations.
+  final bool wrapInheritBoundary;
+
   /// Layout builder for slivers.
   static Widget sliverLayoutBuilder(List<Widget> entries, [AlignmentGeometry alignment = Alignment.center]) =>
       SliverStack(children: entries, positionedAlignment: alignment);
@@ -207,18 +247,24 @@ class _FancySwitcherState extends State<FancySwitcher> {
   void _swapChildEntries(Widget? child, {bool canUpdate = false}) {
     final entry = child != null ? _ChildEntry.fromWidget(child) : null;
 
-    if (!canUpdate) {
-      if ((entry?.index ?? 0) == (_child?.index ?? 0)) {
-        // Indexes default to 0. If swapping entries with the same indexes, check if the new
-        // key matches the previous childs key, to determine whether to reverse the animation.
-        _reverse = entry?.key == _reverseKey;
-        if (!_reverse) _reverseKey = _child?.key;
-      } else {
-        _reverse = (entry?.index ?? 0) < (_child?.index ?? 0) ? true : false;
+    if (widget.reverse) {
+      if (!canUpdate) {
+        if ((entry?.index ?? 0) == (_child?.index ?? 0)) {
+          // Indexes default to 0. If swapping entries with the same indexes, check if the new
+          // key matches the previous childs key, to determine whether to reverse the animation.
+          _reverse = entry?.key == _reverseKey;
+          if (!_reverse) _reverseKey = _child?.key;
+        } else {
+          _reverse = (entry?.index ?? 0) < (_child?.index ?? 0) ? true : false;
+        }
       }
+    } else {
+      _reverse = false;
+      _reverseKey = null;
     }
 
     _child = entry;
+    markNeedsBuild();
   }
 
   Future _scheduleChild(Widget child) async {
@@ -230,12 +276,11 @@ class _FancySwitcherState extends State<FancySwitcher> {
     }
     if (mounted && _compareChildren(widget.child, child)) {
       _swapChildEntries(widget.child);
-      markNeedsBuild();
     }
   }
 
   void _handleChildChange(Widget? old, Widget? current, {bool isInitial = false}) {
-    if (!_compareChildren(old, current)) {
+    if (!_compareChildren(old, current) || isInitial) {
       final shouldDelay = widget.delay > Duration.zero && (widget.shouldDelay?.call() ?? true);
       final willDelay = isInitial
           ? widget.delayInitialChild
@@ -253,15 +298,15 @@ class _FancySwitcherState extends State<FancySwitcher> {
       } else {
         _swapChildEntries(current ?? _placeholder);
       }
-    } else {
+    } else if (old != current) {
       _swapChildEntries(current ?? _placeholder, canUpdate: true);
     }
   }
 
   @override
-  void didChangeDependencies() {
+  void initState() {
+    super.initState();
     if (_child == null) _handleChildChange(null, widget.child, isInitial: true);
-    super.didChangeDependencies();
   }
 
   @override
@@ -285,6 +330,8 @@ class _FancySwitcherState extends State<FancySwitcher> {
           onStatusChanged: widget.onStatusChanged,
           fillColor: widget.fillColor,
           sliver: widget.sliver,
+          inherit: widget.inherit,
+          paintInheritedAnimations: widget.paintInheritedAnimations,
         );
       case FancySwitcherType.axisVertical:
         return SharedAxisTransition(
@@ -296,6 +343,8 @@ class _FancySwitcherState extends State<FancySwitcher> {
           onStatusChanged: widget.onStatusChanged,
           fillColor: widget.fillColor,
           sliver: widget.sliver,
+          inherit: widget.inherit,
+          paintInheritedAnimations: widget.paintInheritedAnimations,
         );
       case FancySwitcherType.axisHorizontal:
         return SharedAxisTransition(
@@ -307,6 +356,8 @@ class _FancySwitcherState extends State<FancySwitcher> {
           onStatusChanged: widget.onStatusChanged,
           fillColor: widget.fillColor,
           sliver: widget.sliver,
+          inherit: widget.inherit,
+          paintInheritedAnimations: widget.paintInheritedAnimations,
         );
       case FancySwitcherType.scaled:
         return SharedAxisTransition(
@@ -318,6 +369,8 @@ class _FancySwitcherState extends State<FancySwitcher> {
           onStatusChanged: widget.onStatusChanged,
           fillColor: widget.fillColor,
           sliver: widget.sliver,
+          inherit: widget.inherit,
+          paintInheritedAnimations: widget.paintInheritedAnimations,
         );
     }
   }
@@ -325,7 +378,9 @@ class _FancySwitcherState extends State<FancySwitcher> {
   Widget _buildLayout(List<Widget> entries, [AlignmentGeometry alignment = Alignment.center]) => widget.sliver
       ? FancySwitcher.sliverLayoutBuilder(entries, alignment)
       : PageTransitionSwitcher.defaultLayoutBuilder(
-          entries,
+          // entries,
+          // (!_reverse ? entries.take(2) : entries.reversed.take(2)).toList(growable: false),
+          entries.take(2).toList(growable: false),
           alignment,
           widget.instantSize
               ? _reverse
@@ -336,13 +391,15 @@ class _FancySwitcherState extends State<FancySwitcher> {
 
   @override
   Widget build(BuildContext context) {
-    final child = _child != null
+    assert(widget.reverse || !_reverse);
+
+    Widget? child = _child != null
         ? !widget.sliver && widget.wrapChildrenInRepaintBoundary
             ? RepaintBoundary(key: _child!.key, child: _child!.widget)
             : KeyedSubtree(key: _child!.key, child: _child!.widget)
         : null;
 
-    final transition = PageTransitionSwitcher(
+    child = PageTransitionSwitcher(
       transitionBuilder: _transition,
       alignment: widget.alignment,
       child: child,
@@ -351,7 +408,15 @@ class _FancySwitcherState extends State<FancySwitcher> {
       layoutBuilder: _buildLayout,
     );
 
-    return !widget.sliver && widget.addRepaintBoundary ? RepaintBoundary(child: transition) : transition;
+    if (!widget.sliver && widget.addRepaintBoundary) {
+      child = RepaintBoundary(child: child);
+    }
+
+    if (widget.wrapInheritBoundary) {
+      child = InheritedAnimationCoordinator.boundary(child: child);
+    }
+
+    return child;
   }
 }
 

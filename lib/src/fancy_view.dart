@@ -3,12 +3,15 @@
 import 'package:animations/animations.dart';
 import 'package:fancy_switcher/src/fancy_switcher.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 
 enum _Position { reverse, idle, forward }
 enum _Direction { incoming, outgoing }
 
 /// Item builder for [FancyView] children.
 typedef FancyViewItemBuilder = Widget Function(BuildContext contex, int index);
+
+const _kPagePhysics = PageScrollPhysics();
 
 /// Page view with material transition animations, instead of linear swipe animation.
 /// Similar to how pages transition in the google play app.
@@ -25,6 +28,10 @@ class FancyView extends StatelessWidget {
     this.clipBehavior = Clip.hardEdge,
     this.onPageChanged,
     this.physics = const AlwaysScrollableScrollPhysics(),
+    this.allowImplicitScrolling = false,
+    this.inherit = false,
+    this.paintInheritedAnimations = false,
+    this.wrapInheritBoundary = false,
   })  : _type = FancySwitcherType.fade,
         super(key: key);
 
@@ -39,6 +46,10 @@ class FancyView extends StatelessWidget {
     this.clipBehavior = Clip.hardEdge,
     this.onPageChanged,
     this.physics = const AlwaysScrollableScrollPhysics(),
+    this.allowImplicitScrolling = false,
+    this.inherit = false,
+    this.paintInheritedAnimations = false,
+    this.wrapInheritBoundary = false,
   })  : _type = FancySwitcherType.axisVertical,
         swipeDirection = Axis.vertical,
         super(key: key);
@@ -54,6 +65,10 @@ class FancyView extends StatelessWidget {
     this.clipBehavior = Clip.hardEdge,
     this.onPageChanged,
     this.physics = const AlwaysScrollableScrollPhysics(),
+    this.allowImplicitScrolling = false,
+    this.inherit = false,
+    this.paintInheritedAnimations = false,
+    this.wrapInheritBoundary = false,
   })  : _type = FancySwitcherType.axisHorizontal,
         swipeDirection = Axis.horizontal,
         super(key: key);
@@ -70,6 +85,10 @@ class FancyView extends StatelessWidget {
     this.clipBehavior = Clip.hardEdge,
     this.onPageChanged,
     this.physics = const AlwaysScrollableScrollPhysics(),
+    this.allowImplicitScrolling = false,
+    this.inherit = false,
+    this.paintInheritedAnimations = false,
+    this.wrapInheritBoundary = false,
   })  : _type = FancySwitcherType.scaled,
         super(key: key);
 
@@ -105,6 +124,22 @@ class FancyView extends StatelessWidget {
   /// [ScrollPhysics] of the inner [PageView].
   final ScrollPhysics physics;
 
+  /// Allow implicit scrolling on iOS. While this is enabled, the cache extent is set
+  /// to 1 viewport, which means other the surrounding pages will get prebuilt.
+  final bool allowImplicitScrolling;
+
+  /// Whether to defer the animations to [InheritedAnimationCoordinator].
+  ///
+  /// If this is toggled, you are responsible for building [InheritedAnimation]
+  /// somewhere down the widget tree.
+  final bool inherit;
+
+  /// Whether to paint any deferred animations before the child.
+  final bool paintInheritedAnimations;
+
+  /// Whether to add an [InheritedAnimationCoordinator.boundary] to avoid inheriting parent animations.
+  final bool wrapInheritBoundary;
+
   Widget _transition(
     Widget child,
     Animation<double> primaryAnimation,
@@ -117,6 +152,8 @@ class FancyView extends StatelessWidget {
           animation: primaryAnimation,
           secondaryAnimation: secondaryAnimation,
           fillColor: fillColor,
+          inherit: inherit,
+          paintInheritedAnimations: paintInheritedAnimations,
         );
       case FancySwitcherType.axisVertical:
         return SharedAxisTransition(
@@ -125,6 +162,8 @@ class FancyView extends StatelessWidget {
           transitionType: SharedAxisTransitionType.vertical,
           child: child,
           fillColor: fillColor,
+          inherit: inherit,
+          paintInheritedAnimations: paintInheritedAnimations,
         );
       case FancySwitcherType.axisHorizontal:
         return SharedAxisTransition(
@@ -133,6 +172,8 @@ class FancyView extends StatelessWidget {
           transitionType: SharedAxisTransitionType.horizontal,
           child: child,
           fillColor: fillColor,
+          inherit: inherit,
+          paintInheritedAnimations: paintInheritedAnimations,
         );
       case FancySwitcherType.scaled:
         return SharedAxisTransition(
@@ -141,27 +182,34 @@ class FancyView extends StatelessWidget {
           transitionType: SharedAxisTransitionType.scaled,
           child: child,
           fillColor: fillColor,
+          inherit: inherit,
+          paintInheritedAnimations: paintInheritedAnimations,
         );
-      default:
-        throw UnimplementedError();
     }
   }
 
   @override
-  Widget build(BuildContext context) => RepaintBoundary(
-        child: _FancyPageView(
-          controller: controller,
-          itemBuilder: itemBuilder,
-          itemCount: itemCount,
-          swipeDirection: swipeDirection,
-          transitionBuilder: _transition,
-          addRepaintBoundaries: addRepaintBoundaries,
-          fillColor: fillColor,
-          clipBehavior: clipBehavior,
-          onPageChanged: onPageChanged,
-          physics: physics,
-        ),
-      );
+  Widget build(BuildContext context) {
+    Widget view = _FancyPageView(
+      controller: controller,
+      itemBuilder: itemBuilder,
+      itemCount: itemCount,
+      swipeDirection: swipeDirection,
+      transitionBuilder: _transition,
+      addRepaintBoundaries: addRepaintBoundaries,
+      fillColor: fillColor,
+      clipBehavior: clipBehavior,
+      onPageChanged: onPageChanged,
+      physics: physics,
+      allowImplicitScrolling: allowImplicitScrolling,
+    );
+
+    if (wrapInheritBoundary) {
+      view = InheritedAnimationCoordinator.boundary(child: view);
+    }
+
+    return view;
+  }
 }
 
 class _FancyPageView extends StatefulWidget {
@@ -177,6 +225,10 @@ class _FancyPageView extends StatefulWidget {
     this.clipBehavior = Clip.hardEdge,
     this.onPageChanged,
     this.physics = const AlwaysScrollableScrollPhysics(),
+    this.allowImplicitScrolling = true,
+    this.scrollBehavior,
+    this.reverse = false,
+    this.pageSnapping = true,
   }) : super(key: key);
 
   final FancyViewItemBuilder itemBuilder;
@@ -189,6 +241,10 @@ class _FancyPageView extends StatefulWidget {
   final Clip clipBehavior;
   final ValueChanged<int>? onPageChanged;
   final ScrollPhysics physics;
+  final bool allowImplicitScrolling;
+  final ScrollBehavior? scrollBehavior;
+  final bool reverse;
+  final bool pageSnapping;
 
   @override
   __FancyPageViewState createState() => __FancyPageViewState();
@@ -199,18 +255,29 @@ class __FancyPageViewState extends State<_FancyPageView> {
 
   late PageController _controller;
   bool _disposeController = false;
+  int _lastReportedPage = 0;
   double _lastValue = 0.0;
 
   void _handleChange({double? value}) {
     final _value = value ?? (_controller.positions.isNotEmpty ? _controller.page : _controller.initialPage.toDouble());
-    if (_lastValue == _value) return; // Redundant.
-    final isStopped = _value?.toInt() == _value;
-    if (isStopped) {
-      _goingReverse.value = null;
-    } else {
-      _goingReverse.value ??= (_value ?? 0.0) < _lastValue;
+
+    if (_lastValue != _value) {
+      final isStopped = _value?.toInt() == _value;
+      if (isStopped) {
+        _goingReverse.value = null;
+      } else {
+        _goingReverse.value ??= (_value ?? 0.0) < _lastValue;
+      }
+      _lastValue = _value ?? 0.0;
+      // markNeedsBuild();
     }
-    _lastValue = _value ?? 0.0;
+
+    // Report page change.
+    final currentPage = _value?.round() ?? _controller.initialPage;
+    if (currentPage != _lastReportedPage) {
+      _lastReportedPage = currentPage;
+      widget.onPageChanged?.call(currentPage);
+    }
   }
 
   @override
@@ -234,43 +301,69 @@ class __FancyPageViewState extends State<_FancyPageView> {
     super.dispose();
   }
 
+  AxisDirection _getDirection(BuildContext context) {
+    switch (widget.swipeDirection) {
+      case Axis.horizontal:
+        assert(debugCheckHasDirectionality(context));
+        final TextDirection textDirection = Directionality.of(context);
+        final AxisDirection axisDirection = textDirectionToAxisDirection(textDirection);
+        return widget.reverse ? flipAxisDirection(axisDirection) : axisDirection;
+      case Axis.vertical:
+        return widget.reverse ? AxisDirection.up : AxisDirection.down;
+    }
+  }
+
   Widget _buildItem(BuildContext context, int i) => _FancyViewTransformedChildBuilder(
         index: i,
         controller: _controller,
         reverse: _goingReverse,
         axis: widget.swipeDirection,
         builder: widget.transitionBuilder,
-        child: widget.addRepaintBoundaries
-            ? RepaintBoundary(child: widget.itemBuilder(context, i))
-            : widget.itemBuilder(context, i),
+        child: widget.itemBuilder(context, i),
       );
 
   @override
-  Widget build(BuildContext context) => PageView.custom(
-        controller: _controller,
-        scrollDirection: widget.swipeDirection,
+  Widget build(BuildContext context) {
+    final axisDirection = _getDirection(context);
+    final scrollPhysics = widget.scrollBehavior?.getScrollPhysics(context) ?? const AlwaysScrollableScrollPhysics();
+    final physics = ForceImplicitScrollPhysics(
+      allowImplicitScrolling: widget.allowImplicitScrolling,
+    ).applyTo(widget.pageSnapping ? _kPagePhysics.applyTo(scrollPhysics) : scrollPhysics);
+    final childrenDelegate = SliverChildBuilderDelegate(
+      _buildItem,
+      childCount: widget.itemCount,
+      addAutomaticKeepAlives: false,
+      addRepaintBoundaries: widget.addRepaintBoundaries,
+    );
+
+    return Scrollable(
+      axisDirection: axisDirection,
+      controller: _controller,
+      physics: physics,
+      scrollBehavior: widget.scrollBehavior ?? ScrollConfiguration.of(context).copyWith(scrollbars: false),
+      viewportBuilder: (context, position) => Viewport(
+        cacheExtent: widget.allowImplicitScrolling ? 1.0 : 0.0,
+        cacheExtentStyle: CacheExtentStyle.viewport,
+        axisDirection: axisDirection,
+        offset: position,
         clipBehavior: widget.clipBehavior,
-        onPageChanged: widget.onPageChanged,
-        physics: widget.physics,
-        pageSnapping: true,
-        childrenDelegate: SliverChildBuilderDelegate(
-          _buildItem,
-          childCount: widget.itemCount,
-          addAutomaticKeepAlives: false,
-          addRepaintBoundaries: false,
-        ),
-      );
+        slivers: <Widget>[
+          SliverFillViewport(
+            viewportFraction: _controller.viewportFraction,
+            delegate: childrenDelegate,
+            moveChildren: false,
+            padEnds: true,
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 /// Widget that builds the children for [FancyView].
 ///
 /// It handles syncing of primary & secondary material transition animations
 /// to the [PageController] in the [FancyView].
-///
-/// This also applies a [FractionalTranslation] to the built children,
-/// to keep them in places, as the [PageView] scrolls, since the material
-/// animations are the ones, that "switch" between the 2 children. [PageView]
-/// is only used for its gesture logic.
 class _FancyViewTransformedChildBuilder extends StatefulWidget {
   /// Creates [_FancyViewTransformedChildBuilder].
   const _FancyViewTransformedChildBuilder({
@@ -313,10 +406,10 @@ class _FancyViewTransformedChildBuilder extends StatefulWidget {
 
 class _FancyViewTransformedChildBuilderState extends State<_FancyViewTransformedChildBuilder>
     with TickerProviderStateMixin<_FancyViewTransformedChildBuilder> {
-  final _relativeValue = ValueNotifier<double>(0);
-
   late AnimationController _primaryController;
   late AnimationController _secondaryController;
+
+  double _relativeValue = 0.0;
 
   _Position get _position {
     if (widget.reverse.value == true) {
@@ -325,9 +418,9 @@ class _FancyViewTransformedChildBuilderState extends State<_FancyViewTransformed
       return _Position.forward;
     }
 
-    if (_relativeValue.value < 0) {
+    if (_relativeValue < 0.0) {
       return _Position.reverse;
-    } else if (_relativeValue.value > 0) {
+    } else if (_relativeValue > 0.0) {
       return _Position.forward;
     } else {
       return _Position.idle;
@@ -335,7 +428,7 @@ class _FancyViewTransformedChildBuilderState extends State<_FancyViewTransformed
   }
 
   _Direction get _direction {
-    if (_relativeValue.value < 0) {
+    if (_relativeValue < 0.0) {
       return widget.reverse.value == true ? _Direction.outgoing : _Direction.incoming;
     } else {
       return widget.reverse.value != true ? _Direction.outgoing : _Direction.incoming;
@@ -351,23 +444,23 @@ class _FancyViewTransformedChildBuilderState extends State<_FancyViewTransformed
       case _Position.forward:
         switch (_direction) {
           case _Direction.incoming:
-            _primaryController.value = 1.0 - _relativeValue.value.abs();
+            _primaryController.value = 1.0 - _relativeValue.abs();
             _secondaryController.value = 0.0;
             break;
           case _Direction.outgoing:
             _primaryController.value = 1.0;
-            _secondaryController.value = _relativeValue.value.abs();
+            _secondaryController.value = _relativeValue.abs();
             break;
         }
         break;
       case _Position.reverse:
         switch (_direction) {
           case _Direction.incoming:
-            _secondaryController.value = _relativeValue.value.abs();
+            _secondaryController.value = _relativeValue.abs();
             _primaryController.value = 1.0;
             break;
           case _Direction.outgoing:
-            _primaryController.value = 1.0 - _relativeValue.value.abs();
+            _primaryController.value = 1.0 - _relativeValue.abs();
             _secondaryController.value = 0.0;
             break;
         }
@@ -375,19 +468,25 @@ class _FancyViewTransformedChildBuilderState extends State<_FancyViewTransformed
     }
   }
 
-  void _handlePageController({double? value}) => _relativeValue.value = (value ??
-              (widget.controller.positions.isNotEmpty
-                  ? widget.controller.page ?? widget.controller.initialPage.toDouble()
-                  : widget.controller.initialPage.toDouble()))
-          .clamp(widget.index - 1, widget.index + 1)
-          .toDouble() -
-      widget.index;
+  void _handlePageController({double? value}) {
+    final relativeValue = (value ??
+                (widget.controller.positions.isNotEmpty
+                    ? widget.controller.page ?? widget.controller.initialPage.toDouble()
+                    : widget.controller.initialPage.toDouble()))
+            .clamp(widget.index - 1, widget.index + 1)
+            .toDouble() -
+        widget.index;
+
+    if (_relativeValue != relativeValue) {
+      _relativeValue = relativeValue;
+      _handleValueChange();
+    }
+  }
 
   @override
   void initState() {
     _primaryController = AnimationController(vsync: this);
     _secondaryController = AnimationController(vsync: this);
-    _relativeValue.addListener(_handleValueChange);
     widget.reverse.addListener(_handlePageController);
     widget.controller.addListener(_handlePageController);
     _handlePageController(value: widget.controller.initialPage.toDouble());
@@ -406,7 +505,6 @@ class _FancyViewTransformedChildBuilderState extends State<_FancyViewTransformed
   void dispose() {
     widget.reverse.removeListener(_handlePageController);
     widget.controller.removeListener(_handlePageController);
-    _relativeValue.dispose();
     _primaryController.dispose();
     _secondaryController.dispose();
 
@@ -414,54 +512,5 @@ class _FancyViewTransformedChildBuilderState extends State<_FancyViewTransformed
   }
 
   @override
-  Widget build(BuildContext context) => ValueListenableBuilder<double>(
-        valueListenable: _relativeValue,
-        child: widget.builder(widget.child, _primaryController, _secondaryController),
-        builder: (_, relativeValue, child) {
-          Offset offset = Offset.zero;
-
-          switch (widget.axis) {
-            case Axis.horizontal:
-              offset = Offset(relativeValue, 0);
-              break;
-            case Axis.vertical:
-              offset = Offset(0, relativeValue);
-              break;
-          }
-
-          if (widget.debug) {
-            final debugChild = SizedBox.expand(
-              child: Center(
-                child: Text(
-                  'Relative value: ${relativeValue.toStringAsFixed(2)}'
-                  '\nDirection: $_direction'
-                  '\nPosition: $_position'
-                  '\nWidget reverse: ${widget.reverse.value}'
-                  '\nPrimary: ${_primaryController.value.toStringAsFixed(2)}'
-                  '\nSecondary: ${_secondaryController.value.toStringAsFixed(2)}',
-                  style: Theme.of(context).textTheme.subtitle2,
-                ),
-              ),
-            );
-
-            return FractionalTranslation(
-              translation: offset,
-              child: Stack(
-                fit: StackFit.expand,
-                children: [
-                  child!,
-                  Column(
-                    children: [
-                      Flexible(child: widget.index.isEven ? debugChild : const SizedBox.expand()),
-                      Flexible(child: widget.index.isOdd ? debugChild : const SizedBox.expand()),
-                    ],
-                  )
-                ],
-              ),
-            );
-          }
-
-          return FractionalTranslation(translation: offset, child: child);
-        },
-      );
+  Widget build(BuildContext context) => widget.builder(widget.child, _primaryController, _secondaryController);
 }

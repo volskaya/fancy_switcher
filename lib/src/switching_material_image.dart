@@ -25,6 +25,9 @@ class SwitchingMaterialImage extends StatelessWidget {
     this.shadowColor,
     this.resize = false,
     this.expandBox = true,
+    this.inherit = false,
+    this.paintInheritedAnimations = false,
+    this.wrapInheritBoundary = false,
   }) : super(key: key);
 
   /// [ImageProvider] to switch to.
@@ -76,6 +79,18 @@ class SwitchingMaterialImage extends StatelessWidget {
   /// Whether to wrap the widget in [SizedBox.expand].
   final bool expandBox;
 
+  /// Whether to defer the animations to [InheritedAnimationCoordinator].
+  ///
+  /// If this is toggled, you are responsible for building [InheritedAnimation]
+  /// somewhere down the widget tree.
+  final bool inherit;
+
+  /// Whether to paint any deferred animations before the child.
+  final bool paintInheritedAnimations;
+
+  /// Whether to add an [InheritedAnimationCoordinator.boundary] to avoid inheriting parent animations.
+  final bool wrapInheritBoundary;
+
   @override
   Widget build(BuildContext context) => SwitchingImage(
         imageProvider: imageProvider,
@@ -88,6 +103,9 @@ class SwitchingMaterialImage extends StatelessWidget {
         curve: curve,
         type: type,
         expandBox: expandBox,
+        inherit: inherit,
+        paintInheritedAnimations: paintInheritedAnimations,
+        wrapInheritBoundary: wrapInheritBoundary,
         layoutChildren: [
           RepaintBoundary(
             child: Material(
