@@ -190,7 +190,7 @@ class FancySwitcher extends StatefulWidget {
   /// Fill color built into some transitions. Setting this makes the animation look more materialy, I guess…
   ///
   /// Should usually either be transparent or match the background of the switchers container.
-  final Color fillColor;
+  @Deprecated('Not used anymore') final Color fillColor;
 
   /// When `true`, the layout will size it to the last child's size, even if any
   /// other children are still animating out.
@@ -378,9 +378,7 @@ class _FancySwitcherState extends State<FancySwitcher> {
   Widget _buildLayout(List<Widget> entries, [AlignmentGeometry alignment = Alignment.center]) => widget.sliver
       ? FancySwitcher.sliverLayoutBuilder(entries, alignment)
       : PageTransitionSwitcher.defaultLayoutBuilder(
-          // entries,
-          // (!_reverse ? entries.take(2) : entries.reversed.take(2)).toList(growable: false),
-          entries.take(2).toList(growable: false),
+          entries,
           alignment,
           widget.instantSize
               ? _reverse

@@ -32,6 +32,7 @@ class FancyView extends StatelessWidget {
     this.inherit = false,
     this.paintInheritedAnimations = false,
     this.wrapInheritBoundary = false,
+    this.enableScroll = true,
   })  : _type = FancySwitcherType.fade,
         super(key: key);
 
@@ -50,6 +51,7 @@ class FancyView extends StatelessWidget {
     this.inherit = false,
     this.paintInheritedAnimations = false,
     this.wrapInheritBoundary = false,
+    this.enableScroll = true,
   })  : _type = FancySwitcherType.axisVertical,
         swipeDirection = Axis.vertical,
         super(key: key);
@@ -69,6 +71,7 @@ class FancyView extends StatelessWidget {
     this.inherit = false,
     this.paintInheritedAnimations = false,
     this.wrapInheritBoundary = false,
+    this.enableScroll = true,
   })  : _type = FancySwitcherType.axisHorizontal,
         swipeDirection = Axis.horizontal,
         super(key: key);
@@ -89,6 +92,7 @@ class FancyView extends StatelessWidget {
     this.inherit = false,
     this.paintInheritedAnimations = false,
     this.wrapInheritBoundary = false,
+    this.enableScroll = true,
   })  : _type = FancySwitcherType.scaled,
         super(key: key);
 
@@ -139,6 +143,9 @@ class FancyView extends StatelessWidget {
 
   /// Whether to add an [InheritedAnimationCoordinator.boundary] to avoid inheriting parent animations.
   final bool wrapInheritBoundary;
+
+  /// When disabled, scroll physics will fallback to [NeverScrollableScrollPhysics].
+  final bool enableScroll;
 
   Widget _transition(
     Widget child,
@@ -202,6 +209,7 @@ class FancyView extends StatelessWidget {
       onPageChanged: onPageChanged,
       physics: physics,
       allowImplicitScrolling: allowImplicitScrolling,
+      enableScroll: enableScroll,
     );
 
     if (wrapInheritBoundary) {
@@ -229,6 +237,7 @@ class _FancyPageView extends StatefulWidget {
     this.scrollBehavior,
     this.reverse = false,
     this.pageSnapping = true,
+    this.enableScroll = true,
   }) : super(key: key);
 
   final FancyViewItemBuilder itemBuilder;
@@ -245,6 +254,7 @@ class _FancyPageView extends StatefulWidget {
   final ScrollBehavior? scrollBehavior;
   final bool reverse;
   final bool pageSnapping;
+  final bool enableScroll;
 
   @override
   __FancyPageViewState createState() => __FancyPageViewState();
@@ -326,9 +336,11 @@ class __FancyPageViewState extends State<_FancyPageView> {
   Widget build(BuildContext context) {
     final axisDirection = _getDirection(context);
     final scrollPhysics = widget.scrollBehavior?.getScrollPhysics(context) ?? const AlwaysScrollableScrollPhysics();
-    final physics = ForceImplicitScrollPhysics(
-      allowImplicitScrolling: widget.allowImplicitScrolling,
-    ).applyTo(widget.pageSnapping ? _kPagePhysics.applyTo(scrollPhysics) : scrollPhysics);
+    final physics = !widget.enableScroll
+        ? const NeverScrollableScrollPhysics()
+        : ForceImplicitScrollPhysics(
+            allowImplicitScrolling: widget.allowImplicitScrolling,
+          ).applyTo(widget.pageSnapping ? _kPagePhysics.applyTo(scrollPhysics) : scrollPhysics);
     final childrenDelegate = SliverChildBuilderDelegate(
       _buildItem,
       childCount: widget.itemCount,
