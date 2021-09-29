@@ -314,40 +314,48 @@ class SwitchingImage extends StatelessWidget {
     switch (type) {
       case SwitchingImageType.scale:
       case SwitchingImageType.axisHorizontal:
-        final child = switcherChild != null
-            ? switcherChild is RawImage
-                ? InheritedAnimationBuilder(
-                    key: switcherChild.key,
-                    wrapScale: type == SwitchingImageType.scale,
-                    wrapTranslation: type == SwitchingImageType.axisHorizontal,
-                    child: _withWrap(
-                      SwitchingImageOpacityBuilder(
-                        opacityOverride: opacity,
-                        builder: (_, opacity) => RawImage(
-                          key: switcherChild.key,
-                          height: switcherChild.height,
-                          width: switcherChild.width,
-                          alignment: switcherChild.alignment,
-                          fit: switcherChild.fit,
-                          scale: switcherChild.scale,
-                          repeat: switcherChild.repeat,
-                          centerSlice: switcherChild.centerSlice,
-                          isAntiAlias: switcherChild.isAntiAlias,
-                          invertColors: switcherChild.invertColors,
-                          filterQuality: switcherChild.filterQuality,
-                          debugImageLabel: switcherChild.debugImageLabel,
-                          matchTextDirection: switcherChild.matchTextDirection,
-                          image: switcherChild.image,
-                          opacity: opacity,
-                        ),
-                      ),
-                      useFilter: true,
-                    ),
-                  )
-                : paintInheritedAnimations
-                    ? InheritedAnimationWrap(child: _withWrap(switcherChild, useFilter: true))
-                    : _withWrap(switcherChild, useFilter: true)
-            : null;
+        Widget? child;
+
+        if (switcherChild != null) {
+          if (switcherChild is RawImage) {
+            child = _withWrap(
+              SwitchingImageOpacityBuilder(
+                opacityOverride: opacity,
+                builder: (_, opacity) => RawImage(
+                  key: switcherChild.key,
+                  height: switcherChild.height,
+                  width: switcherChild.width,
+                  alignment: switcherChild.alignment,
+                  fit: switcherChild.fit,
+                  scale: switcherChild.scale,
+                  repeat: switcherChild.repeat,
+                  centerSlice: switcherChild.centerSlice,
+                  isAntiAlias: switcherChild.isAntiAlias,
+                  invertColors: switcherChild.invertColors,
+                  filterQuality: switcherChild.filterQuality,
+                  debugImageLabel: switcherChild.debugImageLabel,
+                  matchTextDirection: switcherChild.matchTextDirection,
+                  image: switcherChild.image,
+                  opacity: opacity,
+                ),
+              ),
+              useFilter: true,
+            );
+
+            if (inherit) {
+              child = InheritedAnimationBuilder(
+                key: switcherChild.key,
+                wrapScale: type == SwitchingImageType.scale,
+                wrapTranslation: type == SwitchingImageType.axisHorizontal,
+                child: child,
+              );
+            }
+          } else {
+            child = paintInheritedAnimations
+                ? InheritedAnimationWrap(child: _withWrap(switcherChild, useFilter: true))
+                : _withWrap(switcherChild, useFilter: true);
+          }
+        }
 
         switch (type) {
           case SwitchingImageType.scale:
