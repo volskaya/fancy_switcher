@@ -6,7 +6,9 @@ import 'package:fancy_switcher/src/transparent_image.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
-/// Transition types of the interal animated switcher of [SwitchingImage].
+typedef SwitchingImageWrapBuilder = Widget Function(BuildContext context, Widget child);
+
+/// Transition types of the internal animated switcher of [SwitchingImage].
 enum SwitchingImageType {
   /// Transitions with a fade in animation. Animation will try to optimize
   /// by animating images with their alpha color, when possible.
@@ -50,6 +52,7 @@ class SwitchingImage extends StatelessWidget {
     this.expandBox = false,
     this.optimizeFade,
     this.areSimilar,
+    this.wrap,
     this.inherit = false,
     this.paintInheritedAnimations = false,
     this.wrapInheritBoundary = false,
@@ -80,6 +83,7 @@ class SwitchingImage extends StatelessWidget {
     this.expandBox = false,
     this.optimizeFade,
     this.areSimilar,
+    this.wrap,
     this.inherit = false,
     this.paintInheritedAnimations = false,
     this.wrapInheritBoundary = false,
@@ -170,6 +174,9 @@ class SwitchingImage extends StatelessWidget {
   /// [Image] widget similarity check.
   final SimilarImageEqualityCallback? areSimilar;
 
+  /// Optional wrap builder.
+  final SwitchingImageWrapBuilder? wrap;
+
   /// Whether to defer the animations to [InheritedAnimationCoordinator].
   ///
   /// If this is toggled, you are responsible for building [InheritedAnimation]
@@ -184,11 +191,12 @@ class SwitchingImage extends StatelessWidget {
 
   /// Default fade transition of [SwitchingImage].
   static Widget fadeTransition(
+    BuildContext context,
     SwitchingImageType type,
     Widget widget,
     Animation<double> animation, {
     Animation<double>? opacity,
-    Widget Function(Widget child)? wrap,
+    Widget Function(BuildContext context, Widget child)? wrap,
     BlendMode? colorBlendMode,
     Color? color,
     bool filter = false,
@@ -210,7 +218,7 @@ class SwitchingImage extends StatelessWidget {
         case SwitchingImageType.slide:
           return SlideAnimation(
             animation: animation,
-            child: wrap?.call(widget) ?? widget,
+            child: wrap?.call(context, widget) ?? widget,
           );
         default: // Pass through.
       }
@@ -241,9 +249,9 @@ class SwitchingImage extends StatelessWidget {
         ),
       );
 
-      return wrap?.call(image) ?? image;
+      return wrap?.call(context, image) ?? image;
     } else {
-      final child = wrap?.call(widget) ?? widget;
+      final child = wrap?.call(context, widget) ?? widget;
       return Animations.fade(
         opacity: animation,
         inherit: inherit,
@@ -258,20 +266,26 @@ class SwitchingImage extends StatelessWidget {
     Iterable<Widget> previousChildren, [
     AlignmentGeometry alignment = AlignmentDirectional.topStart,
     Iterable<Widget> layoutChildren = const <Widget>[],
-  ]) =>
-      Stack(
-        fit: StackFit.passthrough,
-        clipBehavior: Clip.none,
-        alignment: alignment,
-        children: <Widget>[
-          ...previousChildren,
-          if (currentChild != null) currentChild,
-          ...layoutChildren,
-        ],
-      );
+  ]) {
+    assert((() {
+      for (final child in layoutChildren) if (child.key == null) return false;
+      return true;
+    })(), 'Missing key on a layout child for a switching image.');
+
+    return Stack(
+      fit: StackFit.passthrough,
+      clipBehavior: Clip.none,
+      alignment: alignment,
+      children: <Widget>[
+        ...previousChildren,
+        if (currentChild != null) currentChild,
+        ...layoutChildren,
+      ],
+    );
+  }
 
   /// If [SwitchingImage.borderRadius] is not null, wrap the image in [ClipPath].
-  Widget _withWrap(Widget _child, {bool useFilter = false}) {
+  Widget _withWrap(BuildContext context, Widget _child, {bool useFilter = false}) {
     final shouldFilter = useFilter && filter && _child is RawImage;
     final shouldShape = shape != null || borderRadius != null;
 
@@ -290,6 +304,10 @@ class SwitchingImage extends StatelessWidget {
       child = shape != null
           ? ClipPath(clipper: ShapeBorderClipper(shape: shape!), child: child)
           : ClipRRect(borderRadius: borderRadius, child: child);
+    }
+
+    if (wrap != null) {
+      child = wrap!(context, child);
     }
 
     return KeyedSubtree(key: _child.key, child: child);
@@ -319,6 +337,7 @@ class SwitchingImage extends StatelessWidget {
         if (switcherChild != null) {
           if (switcherChild is RawImage) {
             child = _withWrap(
+              context,
               SwitchingImageOpacityBuilder(
                 opacityOverride: opacity,
                 builder: (_, opacity) => RawImage(
@@ -352,8 +371,8 @@ class SwitchingImage extends StatelessWidget {
             }
           } else {
             child = paintInheritedAnimations
-                ? InheritedAnimationWrap(child: _withWrap(switcherChild, useFilter: true))
-                : _withWrap(switcherChild, useFilter: true);
+                ? InheritedAnimationWrap(child: _withWrap(context, switcherChild, useFilter: true))
+                : _withWrap(context, switcherChild, useFilter: true);
           }
         }
 
@@ -391,9 +410,10 @@ class SwitchingImage extends StatelessWidget {
           switchOutCurve: const Threshold(0),
           child: switcherChild,
           layoutBuilder: (child, children) => SwitchingImage.layoutBuilder(child, children, alignment, layoutChildren),
-          transitionBuilder: (context, animation) => SwitchingImage.fadeTransition(
-            type,
+          transitionBuilder: (child, animation) => SwitchingImage.fadeTransition(
             context,
+            type,
+            child,
             animation,
             opacity: opacity,
             wrap: _withWrap,
@@ -406,7 +426,7 @@ class SwitchingImage extends StatelessWidget {
           ),
         );
       case SwitchingImageType.instant:
-        return switcherChild != null ? _withWrap(switcherChild, useFilter: true) : _idleChild;
+        return switcherChild != null ? _withWrap(context, switcherChild, useFilter: true) : _idleChild;
     }
   }
 
@@ -436,7 +456,7 @@ class SwitchingImage extends StatelessWidget {
   Widget build(BuildContext context) {
     Widget image = resize ? LayoutBuilder(builder: _buildImage) : _buildImage(context);
 
-    if (addRepaintBoundary) image = RepaintBoundary(child: image);
+    // if (addRepaintBoundary) image = RepaintBoundary(child: image);
     if (wrapInheritBoundary) image = InheritedAnimationCoordinator.boundary(child: image);
     // if (expandBox) image = SizedBox.expand(child: image);
 

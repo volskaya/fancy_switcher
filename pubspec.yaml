@@ -5,7 +5,7 @@ homepage: github.com/volskaya/fancy_switcher
 publish_to: none
 
 environment:
-  sdk: ">=2.12.0 <3.0.0"
+  sdk: ">=2.18.0-44.0.dev <3.0.0"
   flutter: ">=1.17.0 <2.0.0"
 
 dependencies:
@@ -15,6 +15,6 @@ dependencies:
   sliver_tools: ^0.2.0
 
   animations:
-    path: /home/projects/packages/flutter_helpers/animations
+    path: /Users/muru/Projects/packages/flutter_helpers/animations
   await_route:
-    path: /home/projects/packages/flutter_helpers/await_route
+    path: /Users/muru/Projects/packages/flutter_helpers/await_route

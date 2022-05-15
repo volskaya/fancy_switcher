@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 ///
 /// It's hard to paint a transitioning [Image] widget lookalike on
 /// a material's canvas, so this is the next best thing.
+@Deprecated('Ink decorations now paint on the foreground. Stop using this widget.')
 class SwitchingMaterialImage extends StatelessWidget {
   /// Creates [SwitchingMaterialImage].
   const SwitchingMaterialImage({
@@ -92,33 +93,28 @@ class SwitchingMaterialImage extends StatelessWidget {
   final bool wrapInheritBoundary;
 
   @override
-  Widget build(BuildContext context) => SwitchingImage(
-        imageProvider: imageProvider,
-        idleChild: idleChild,
-        borderRadius: borderRadius,
-        shape: shape,
-        duration: duration,
-        filterQuality: filterQuality,
-        fit: fit,
-        curve: curve,
-        type: type,
-        expandBox: expandBox,
-        inherit: inherit,
-        paintInheritedAnimations: paintInheritedAnimations,
-        wrapInheritBoundary: wrapInheritBoundary,
-        layoutChildren: [
-          RepaintBoundary(
-            child: Material(
-              type: color != null ? MaterialType.canvas : MaterialType.transparency,
-              color: color,
-              elevation: elevation,
-              borderRadius: color != null ? borderRadius : null,
-              shape: color != null ? shape : null,
-              child: child,
-              shadowColor: shadowColor,
-            ),
-          ),
-          ...layoutChildren,
-        ],
+  Widget build(BuildContext context) => Material(
+        type: color != null ? MaterialType.canvas : MaterialType.transparency,
+        color: color,
+        elevation: elevation,
+        borderRadius: color != null ? borderRadius : null,
+        shape: color != null ? shape : null,
+        shadowColor: shadowColor,
+        child: SwitchingImage(
+          imageProvider: imageProvider,
+          idleChild: idleChild,
+          borderRadius: borderRadius,
+          shape: shape,
+          duration: duration,
+          filterQuality: filterQuality,
+          fit: fit,
+          curve: curve,
+          type: type,
+          expandBox: expandBox,
+          inherit: inherit,
+          paintInheritedAnimations: paintInheritedAnimations,
+          wrapInheritBoundary: wrapInheritBoundary,
+          layoutChildren: layoutChildren,
+        ),
       );
 }
